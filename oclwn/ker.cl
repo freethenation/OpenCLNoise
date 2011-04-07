@@ -24,10 +24,6 @@ struct IntPoint {
   int z;
 } typedef IntPoint;
 
-//HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
-//  return (541 * i + 79 * j + 31 * k) % 0x100000000;
-//}
-
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
   return (HASH_T)((((((OFFSET_BASIS ^ (HASH_T)i) * FNV_PRIME) ^ (HASH_T)j) * FNV_PRIME) ^ (HASH_T)k) * FNV_PRIME);
@@ -50,25 +46,20 @@ void printArr(FLOAT_T *arr) {
 void insert(FLOAT_T *arr, FLOAT_T value) {
   // Ugly hack to prevent duplicate values
   for(int i=0; i < N; ++i)
-	if(arr[i] == value)
-	  return;
+    if(arr[i] == value)
+	return;
 
   float temp;
-  for (int i=N-1; i>=0; i--){
-	if(value > arr[i]) break;
-	temp = arr[i];
-	arr[i] = value;
-	if(i+1<N) arr[i+1] = temp;
+  for(int i=N-1; i>=0; i--) {
+    if(value > arr[i]) break;
+    temp = arr[i];
+    arr[i] = value;
+    if(i+1<N) arr[i+1] = temp;
   }
 }
 
 uint rng(uint last) {
-  uint val = ((1103515245 * last + 12345) % 0x100000000);
-#ifdef __CLKERNEL
-#else
-//  printf("rng value = %d from last = %d\n",val,last);
-#endif
-  return val;
+  return ((1103515245 * last + 12345) % 0x100000000);
 }
 
 //Generated with "N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
@@ -149,7 +140,7 @@ __kernel void WorleyNoise(__global FLOAT_T *arrX, __global FLOAT_T *arrY, __glob
 	p.z = arrZ[idZ];
 	forAll(darr,p);
 
-	output[width*width*idX + width*idY + idZ] = darr[1] - darr[0]; 
+	output[depth*height*idX + depth*idY + idZ] = darr[0]; 
   }
 } 
 #else

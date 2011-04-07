@@ -85,7 +85,7 @@ tile_size = 2 ** int(math.log(int(math.sqrt(maxwgs)))/math.log(2))
 #~ print matrix2.shape
 #~ print
 
-array1 = numpy.array([x/10.0 for x in xrange(0,100)])
+array1 = numpy.array([x/50.0 for x in xrange(0,1024)])
 array2 = array1.copy()
 array3 = numpy.array([0])
 width = len(array1)
@@ -132,7 +132,7 @@ output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_
 
 # Start compute - call the matmult kernel function using command queue queue, 2d global work size as given, and 2d local work size as given
 # Returns immediately -- we block at the enqueue_read_buffer
-worker.WorleyNoise(queue, (width,height,depth), (10,10,1), 
+worker.WorleyNoise(queue, (width,height,depth), None, 
 	arr1_buf, arr2_buf, arr3_buf, output_buf, 
         numpy.int32(width), numpy.int32(height), numpy.int32(depth))
 
@@ -149,7 +149,6 @@ with open('output.pgm','w') as out:
     for value in (output * 255).astype(numpy.uint32):
         out.write(str(value) + ' ')
     
-
 
 #~ if options.allowcpucompute:
     #~ print "\nComputing on CPU"
