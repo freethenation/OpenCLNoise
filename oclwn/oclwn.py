@@ -7,6 +7,7 @@ import numpy
 import time
 import math
 import sys
+import os
 
 # Function to prompt for device selection
 def askLongOptions(prompt,options):
@@ -133,8 +134,8 @@ output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_
 # Start compute - call the matmult kernel function using command queue queue, 2d global work size as given, and 2d local work size as given
 # Returns immediately -- we block at the enqueue_read_buffer
 worker.WorleyNoise(queue, (width,height,depth), None, 
-	arr1_buf, arr2_buf, arr3_buf, output_buf, 
-        numpy.int32(width), numpy.int32(height), numpy.int32(depth))
+	arr1_buf, arr2_buf, arr3_buf, output_buf)
+        #//numpy.int32(width), numpy.int32(height), numpy.int32(depth))
 
 # Read output buffer back to host 
 cl.enqueue_read_buffer(queue, output_buf, output).wait()
@@ -144,8 +145,20 @@ gputime = time.time() - t
 print "gpu time: {0:8.2f}ms".format(gputime * 1000)
 
 if depth != 1: raise Exception("Can't write 3d image as a PGM :)")
-with open('output.pgm','w') as out:
-    out.write('P2\n{0} {1}\n255\n'.format(width,height))
-    for value in (output * 255).astype(numpy.uint32):
-        out.write(str(value) + ' ')
+# Write PGM
+#~ with open('output.pgm','w') as out:
+    #~ out.write('P2\n{0} {1}\n255\n'.format(width,height))
+    #~ for value in (output * 255).astype(numpy.uint32):
+        #~ out.write(str(value) + ' ')
+
+# Write JPG
+from PIL import Image
+output.shape = (width,height)
+im = Image.fromarray( (output*255).astype(numpy.ubyte) )
+print (output*255).astype(numpy.ubyte)
+fn = '{0}-{1}.png'.format(os.environ.get('USER','unknown'),int(time.time()))
+im.save(fn)
+print "Saved image to {0}".format(fn)
+
+
 

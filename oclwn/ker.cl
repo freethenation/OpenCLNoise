@@ -20,6 +20,15 @@ HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
   return (HASH_T)((((((OFFSET_BASIS ^ (HASH_T)i) * FNV_PRIME) ^ (HASH_T)j) * FNV_PRIME) ^ (HASH_T)k) * FNV_PRIME);
 }
 
+//~ FLOAT_T our_distance(Point p1, Point p2) {
+    //~ Point d = fabs(p1-p2);
+    //~ if(d.x > d.y && d.x > d.z)
+	//~ return d.x;
+    //~ if(d.y > d.z)
+	//~ return d.y;
+    //~ return d.z;
+//~ }
+
 // Return the square of the distance between points p1 and p2
 FLOAT_T our_distance(Point p1, Point p2) {
   return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
@@ -45,25 +54,36 @@ uint rng(uint last) {
   return ((1103515245 * last + 12345) % 0x100000000);
 }
 
-// Generated with "N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
-uint prob_lookup(float value)
+// Generated with "AccountingForm[N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]*2^32]" //"N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
+uint prob_lookup(uint value)
 {
- if(value < 0.091578194443670901469) return 1;
- else if(value < 0.23810330555354434382) return 2;
- else if(value < 0.43347012036670893362) return 3;
- else if(value < 0.62883693517987352342) return 4;
- else if(value < 0.78513038703040519526) return 5;
- else if(value < 0.88932602159742630982) return 6;
- else if(value < 0.94886638420715266099) return 7;
- else if(value < 0.97863656551201583658) return 8;
- else return 9; 
+    if(value < 393325350) return 1;
+    if(value < 1022645910) return 2;
+    if(value < 1861739990) return 3;
+    if(value < 2700834071) return 4;
+    if(value < 3372109335) return 5;
+    if(value < 3819626178) return 6;
+    if(value < 4075350088) return 7;
+    if(value < 4203212043) return 8;
+    return 9;
 }
+    
+ //~ if(value < 0.091578194443670901469) return 1;
+ //~ else if(value < 0.23810330555354434382) return 2;
+ //~ else if(value < 0.43347012036670893362) return 3;
+ //~ else if(value < 0.62883693517987352342) return 4;
+ //~ else if(value < 0.78513038703040519526) return 5;
+ //~ else if(value < 0.88932602159742630982) return 6;
+ //~ else if(value < 0.94886638420715266099) return 7;
+ //~ else if(value < 0.97863656551201583658) return 8;
+ //~ else return 9; 
+//~ }
 
 void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint c) {
   uint rngLast = rng( hash(c.x, c.y, c.z) );
   uint rng1,rng2,rng3;
   Point randomDiff,featurePoint;
-  uint numFPoints = prob_lookup( (float)rngLast/0x100000000 );
+  uint numFPoints = prob_lookup( rngLast );
 
   for(uint i = 0; i < numFPoints; ++i) {	
 	rng1 = rng(rngLast);
@@ -93,10 +113,13 @@ void forAll(FLOAT_T *distanceArray, Point p) {
     }
 }
 
-__kernel void WorleyNoise(__global FLOAT_T *arrX, __global FLOAT_T *arrY, __global FLOAT_T *arrZ, __global FLOAT_T *output, int width, int height, int depth) {
-  uint idX = get_global_id(0);
-  uint idY = get_global_id(1);
-  uint idZ = get_global_id(2);
+__kernel void WorleyNoise(__global FLOAT_T *arrX, __global FLOAT_T *arrY, __global FLOAT_T *arrZ, __global FLOAT_T *output) {//, int width, int height, int depth) {
+    uint idX = get_global_id(0);
+    uint idY = get_global_id(1);
+    uint idZ = get_global_id(2);
+    uint width = get_global_size(0);
+    uint height = get_global_size(1);
+    uint depth = get_global_size(2);
 
   // Shall we do work?
   if(idX < width && idY < height && idZ < depth) {
@@ -110,6 +133,7 @@ __kernel void WorleyNoise(__global FLOAT_T *arrX, __global FLOAT_T *arrY, __glob
 	p.y = arrY[idY];
 	p.z = arrZ[idZ];
 	forAll(darr,p);
+	//findDistancesForCube(darr, p, convert_int4(p));
 
 	output[depth*height*idX + depth*idY + idZ] = darr[1] - darr[0]; 
   }
