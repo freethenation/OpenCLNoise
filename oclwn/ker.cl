@@ -12,17 +12,22 @@
 #define HASH_T uint
 #define N 5
 
-struct Point {
+#ifdef __CLKERNEL
+typedef float4 Point;
+typedef int4 IntPoint;
+#else
+typedef struct Point {
   FLOAT_T x;
   FLOAT_T y;
   FLOAT_T z;
-} typedef Point;
+} Point;
 
-struct IntPoint {
+typedef struct IntPoint {
   int x;
   int y;
   int z;
-} typedef IntPoint;
+} IntPoint;
+#endif
 
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
@@ -30,8 +35,10 @@ HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
 }
 
 // Return the square of the distance between points p1 and p2
-FLOAT_T distanceSq(Point p1, Point p2) {
-  return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
+FLOAT_T our_distance(Point p1, Point p2) {
+  Point pz = p1-p2;
+  return dot(pz,pz);
+  //return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
 }
 
 #ifdef __CLKERNEL
@@ -94,7 +101,7 @@ void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint c) {
 	rngLast = rng(rngLast);
 	featurePoint.z = (float)rngLast / 0x100000000 + c.z;
 	
-	FLOAT_T dist = distanceSq(p,featurePoint);
+	FLOAT_T dist = our_distance(p,featurePoint);
 
 #ifdef __CLKERNEL	
 #else
