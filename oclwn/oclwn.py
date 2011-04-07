@@ -148,29 +148,4 @@ with open('output.pgm','w') as out:
     out.write('P2\n{0} {1}\n255\n'.format(width,height))
     for value in (output * 255).astype(numpy.uint32):
         out.write(str(value) + ' ')
-    
 
-#~ if options.allowcpucompute:
-    #~ print "\nComputing on CPU"
-    #~ # Begin timing the CPU code
-    #~ t = time.time() 
-    #~ 
-    #~ # Calculate multiplication by CPU
-    #~ noutput = numpy.dot(matrix1,matrix2).ravel()
-    #~ 
-    #~ # Compute the CPU time and speedup from GPU
-    #~ cputime = time.time() - t
-    #~ print "cpu time: {0:8.2f}ms".format(cputime * 1000)
-    #~ print "speedup: {0:.2f}".format(cputime/gputime)
-#~ 
-    #~ # Check for errors
-    #~ failed = False
-    #~ for i,tup in enumerate( zip(list(noutput),list(output)) ):
-	#~ cpu,gpu = tup
-	#~ if abs(cpu - gpu) > FLOATING_POINT_MARGIN_OF_ERROR:
-	    #~ failed = True
-	    #~ print "Warning: %.3f CPU != %.3f GPU @ %d" % (cpu,gpu,i)
-    #~ if not failed:
-	#~ print "All tests passed! All cells agree within {0}.".format(FLOATING_POINT_MARGIN_OF_ERROR)
-#~ else:
-    #~ print "Not computing the multiplication on the CPU."
