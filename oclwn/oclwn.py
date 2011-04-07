@@ -156,7 +156,7 @@ from PIL import Image
 output.shape = (width,height)
 im = Image.fromarray( (output*255).astype(numpy.ubyte) )
 print (output*255).astype(numpy.ubyte)
-fn = '{0}-{1}.png'.format(os.environ.get('USER','unknown'),int(time.time()))
+fn = '{0}.png'.format(os.environ.get('USER','unknown'),int(time.time()))
 im.save(fn)
 print "Saved image to {0}".format(fn)
 
