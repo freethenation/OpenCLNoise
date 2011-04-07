@@ -38,7 +38,7 @@ void insert(FLOAT_T *arr, FLOAT_T value) {
   // Ugly hack to prevent duplicate values
   for(int i=0; i < N; ++i)
     if(arr[i] == value)
-	return;
+  	return;
 
   float temp;
   for(int i=N-1; i>=0; i--) {
@@ -89,6 +89,7 @@ void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint c) {
 	rng1 = rng(rngLast);
 	rng2 = rng(rng1);
 	rng3 = rng(rng2);
+	rngLast = rng3;
 
 	randomDiff.x = (float)rng1 / 0x100000000;
 	randomDiff.y = (float)rng2 / 0x100000000;
