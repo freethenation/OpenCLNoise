@@ -2,6 +2,7 @@
 import pyopencl as cl
 import optparse
 import random
+import struct
 import numpy
 import time
 import math
@@ -86,9 +87,11 @@ tile_size = 2 ** int(math.log(int(math.sqrt(maxwgs)))/math.log(2))
 
 array1 = numpy.array([x/10.0 for x in xrange(0,100)])
 array2 = array1.copy()
-array3 = array1.copy()
+array3 = numpy.array([0])
 width = len(array1)
-print "Working with arrays of width", width
+height = len(array2)
+depth = len(array3)
+print "Working with arrays of dimensions ({0},{1},{2})".format(width,height,depth)
 
 # Global work size - number of threads to run in total
 #global_work_size = roundUpToIncrements(width,tile_size)
@@ -124,13 +127,14 @@ arr2_buf = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PT
 arr3_buf = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=array3.astype(numpy.float32))
 
 # Allocate space for output buffer
-output = numpy.zeros(width*width*width,numpy.float32)
+output = numpy.zeros(width*height*depth,numpy.float32)
 output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
 
 # Start compute - call the matmult kernel function using command queue queue, 2d global work size as given, and 2d local work size as given
 # Returns immediately -- we block at the enqueue_read_buffer
-worker.WorleyNoise(queue, (width,width,width), None, #(tile_size,tile_size), 
-	arr1_buf, arr2_buf, arr3_buf, output_buf, numpy.int32(width))
+worker.WorleyNoise(queue, (width,height,depth), (10,10,1), 
+	arr1_buf, arr2_buf, arr3_buf, output_buf, 
+        numpy.int32(width), numpy.int32(height), numpy.int32(depth))
 
 # Read output buffer back to host 
 cl.enqueue_read_buffer(queue, output_buf, output).wait()
@@ -139,7 +143,13 @@ cl.enqueue_read_buffer(queue, output_buf, output).wait()
 gputime = time.time() - t
 print "gpu time: {0:8.2f}ms".format(gputime * 1000)
 
-print output[:5]
+if depth != 1: raise Exception("Can't write 3d image as a PGM :)")
+with open('output.pgm','w') as out:
+    out.write('P2\n{0} {1}\n255\n'.format(width,height))
+    for value in (output * 255).astype(numpy.uint32):
+        out.write(str(value) + ' ')
+    
+
 
 #~ if options.allowcpucompute:
     #~ print "\nComputing on CPU"

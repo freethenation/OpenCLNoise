@@ -1,22 +1,61 @@
-//#include <stdio.h>
+#define __CLKERNEL
 
+#ifdef __CLKERNEL
+#else
+#include <stdio.h>
+#define uint unsigned int
+#endif
+
+#define OFFSET_BASIS 2166136261
+#define FNV_PRIME 16777619
 #define FLOAT_T float
-#define HASH_T int
+#define HASH_T uint
 #define N 5
-//#define uint unsigned int
 
+struct Point {
+  FLOAT_T x;
+  FLOAT_T y;
+  FLOAT_T z;
+} typedef Point;
+
+struct IntPoint {
+  int x;
+  int y;
+  int z;
+} typedef IntPoint;
+
+//HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
+//  return (541 * i + 79 * j + 31 * k) % 0x100000000;
+//}
+
+// FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
-  return (541 * i + 79 * j + 31 * k) % 0x100000000;
+  return (HASH_T)((((((OFFSET_BASIS ^ (HASH_T)i) * FNV_PRIME) ^ (HASH_T)j) * FNV_PRIME) ^ (HASH_T)k) * FNV_PRIME);
 }
 
-FLOAT_T distanceSq(FLOAT_T x, FLOAT_T y, FLOAT_T z, FLOAT_T px, FLOAT_T py, FLOAT_T pz) {
-  return (x-px)*(x-px) + (y-py)*(y-py) + (z-pz)*(z-pz);
+// Return the square of the distance between points p1 and p2
+FLOAT_T distanceSq(Point p1, Point p2) {
+  return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
 }
+
+#ifdef __CLKERNEL
+#else
+void printArr(FLOAT_T *arr) {
+  for(uint i = 0; i < N; ++i) {
+	printf("%u = %f\n",i,arr[i]);
+  }
+}
+#endif
 
 void insert(FLOAT_T *arr, FLOAT_T value) {
+  // Ugly hack to prevent duplicate values
+  for(int i=0; i < N; ++i)
+	if(arr[i] == value)
+	  return;
+
   float temp;
   for (int i=N-1; i>=0; i--){
-	if(value > arr[i]) return;
+	if(value > arr[i]) break;
 	temp = arr[i];
 	arr[i] = value;
 	if(i+1<N) arr[i+1] = temp;
@@ -24,7 +63,12 @@ void insert(FLOAT_T *arr, FLOAT_T value) {
 }
 
 uint rng(uint last) {
-  return ((1103515245 * last + 12345) % 0x100000000);
+  uint val = ((1103515245 * last + 12345) % 0x100000000);
+#ifdef __CLKERNEL
+#else
+//  printf("rng value = %d from last = %d\n",val,last);
+#endif
+  return val;
 }
 
 //Generated with "N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
@@ -41,64 +85,96 @@ uint prob_lookup(float value)
  else return 9; 
 }
 
-void findDistancesForCube(FLOAT_T *distanceArray, FLOAT_T x, FLOAT_T y, FLOAT_T z, int cx, int cy, int cz) {
-  uint rngLast = rng( hash(cx, cy, cz) );
+void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint c) {
+  uint rngLast = rng( hash(c.x, c.y, c.z) );
   uint numFPoints = prob_lookup( (float)rngLast/0x100000000 );
-
-  FLOAT_T fPointX,fPointY,fPointZ;
+#ifdef __CLKERNEL
+#else
+  printf("We'll have %d feature points in (%d,%d,%d).\n",numFPoints,c.x,c.y,c.z);
+#endif
+  Point featurePoint;
   for(uint i = 0; i < numFPoints; ++i) {
 	rngLast = rng(rngLast);
-	fPointX = (float)rngLast / 0x100000000 + cx;
+	featurePoint.x = (float)rngLast / 0x100000000 + c.x;
 	
 	rngLast = rng(rngLast);
-	fPointY = (float)rngLast / 0x100000000 + cy;
+	featurePoint.y = (float)rngLast / 0x100000000 + c.y;
 
 	rngLast = rng(rngLast);
-	fPointZ = (float)rngLast / 0x100000000 + cz;
+	featurePoint.z = (float)rngLast / 0x100000000 + c.z;
 	
-	//printf("Comparing (%.2f,%.2f,%.2f) to (%.2f,%.2f,%.2f)\n",x,y,z,fPointX,fPointY,fPointZ);
+	FLOAT_T dist = distanceSq(p,featurePoint);
 
-	insert(distanceArray, distanceSq(x,y,z,fPointX,fPointY,fPointZ));
+#ifdef __CLKERNEL	
+#else
+	printf("Found a feature point (%.2f,%.2f,%.2f) in chunk (%d,%d,%d).\n",featurePoint.x,featurePoint.y,featurePoint.z,c.x,c.y,c.z);
+
+	printf("Square distance from (%.2f,%.2f,%.2f) to (%.2f,%.2f,%.2f): %.3f\n",featurePoint.x,featurePoint.y,featurePoint.z,p.x,p.y,p.z,dist);
+#endif
+
+	insert(distanceArray, dist);
   }
 }
 
-void forAll(FLOAT_T *distanceArray, FLOAT_T x, FLOAT_T y, FLOAT_T z) {
-  for(int i=-1; i < 2; ++i)
-	for(int j=-1; j < 2; ++j)
-	  for(int k=-1; k < 2; ++k)
-		findDistancesForCube(distanceArray, x,y,z, x+i,y+j,z+k);
+void forAll(FLOAT_T *distanceArray, Point p) {
+  for(int i=-1; i < 2; ++i) {
+	for(int j=-1; j < 2; ++j) {
+	  for(int k=-1; k < 2; ++k) {
+		IntPoint cube;
+		cube.x = p.x + i;
+		cube.y = p.y + j;
+		cube.z = p.z + k;
+		findDistancesForCube(distanceArray, p, cube);
+	  }
+	}
+  }
 }
 
-/* void printArr(FLOAT_T *arr) { */
-/*   for(int i = 0; i < N; ++i) */
-/* 	printf("i = %d: v = %f\n",i,arr[i]); */
-/*   printf("\n"); */
-/* } */
-
-/* int main() { */
-/*   FLOAT_T distanceArr[N]; */
-/*   for(int i=0; i < N; ++i) */
-/* 	distanceArr[i] = 666; */
-/*   FLOAT_T x = 5.2, y = 3.3, z = 9.1; */
-/*   forAll(distanceArr,x,y,z); */
-/*   printArr(distanceArr); */
-/*   return 0; */
-/* } */
-
-__kernel void WorleyNoise(__global FLOAT_T *arrX, __global FLOAT_T *arrY, __global FLOAT_T *arrZ, __global FLOAT_T *output, int width) {
+#ifdef __CLKERNEL
+__kernel void WorleyNoise(__global FLOAT_T *arrX, __global FLOAT_T *arrY, __global FLOAT_T *arrZ, __global FLOAT_T *output, int width, int height, int depth) {
   uint idX = get_global_id(0);
   uint idY = get_global_id(1);
   uint idZ = get_global_id(2);
 
   // Shall we do work?
-  if(idX < width && idY < width && idZ < width) {
+  if(idX < width && idY < height && idZ < depth) {
+	// Initalize array
+	FLOAT_T darr[N];
+	for(int i=0; i<N; ++i)
+	  darr[i] = 888;
+	
+	Point p;
+	p.x = arrX[idX];
+	p.y = arrY[idY];
+	p.z = arrZ[idZ];
+	forAll(darr,p);
+
+	output[width*width*idX + width*idY + idZ] = darr[1] - darr[0]; 
+  }
+} 
+#else
+void somePoint(Point p) {
 	// Initalize array
 	FLOAT_T darr[N];
 	for(int i=0; i<N; ++i)
 	  darr[i] = 666;
 	
-	forAll(darr,arrX[idX],arrY[idY],arrZ[idZ]);
+	forAll(darr,p);
 
-	output[width*width*idX + width*idY + idZ] = darr[1] - darr[0]; 
-  }
-} 
+	printf("[%.2f,%.2f,%.2f]:\n",p.x,p.y,p.z);
+	for(uint i=0; i<N; ++i)
+	  printf("%u = %f\n",i,darr[i]);
+}
+
+int main() {
+  Point p;
+  p.x = 0.62;
+  p.y = 1.5;
+  p.z = 2.0;
+  somePoint(p);
+  /* for(int i=-5; i < 5; ++i) */
+  /* 	for(int j=-5; j < 5; ++j) */
+  /* 	  for(int k=-5; k < 5; ++k) */
+  /* 		somePoint(i,j,k, (float)i/2,(float)j/2,(float)k/2); */
+}
+#endif
