@@ -85,16 +85,16 @@ void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint c) {
   Point randomDiff,featurePoint;
   uint numFPoints = prob_lookup( rngLast );
 
-  for(uint i = 0; i < numFPoints; ++i) {	
+  for(uint i = 0; i < numFPoints; ++i) {
 	rng1 = rng(rngLast);
 	rng2 = rng(rng1);
 	rng3 = rng(rng2);
-	
+
 	randomDiff.x = (float)rng1 / 0x100000000;
 	randomDiff.y = (float)rng2 / 0x100000000;
 	randomDiff.z = (float)rng3 / 0x100000000;
 	featurePoint = randomDiff + convert_float4(c);
-	
+
 	insert(distanceArray, our_distance(p,featurePoint));
   }
 }
