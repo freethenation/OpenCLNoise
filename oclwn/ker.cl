@@ -1,24 +1,27 @@
-#define __CLKERNEL
-
-#ifdef __CLKERNEL
-#else
-#include <stdio.h>
-#define uint unsigned int
-#endif
-
-#define OFFSET_BASIS 2166136261
-#define FNV_PRIME 16777619
-#define FLOAT_T float
-#define HASH_T uint
 #define N 5
 
+#define FLOAT_T float
 typedef float4 Point;
 typedef int4 IntPoint;
 
+typedef struct PointColor {
+    Point point;
+    Point color;
+} PointColor;
+
+#define OFFSET_BASIS 2166136261
+#define FNV_PRIME 16777619
+
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
-HASH_T hash(HASH_T i, HASH_T j, HASH_T k) {
-  return (HASH_T)((((((OFFSET_BASIS ^ (HASH_T)i) * FNV_PRIME) ^ (HASH_T)j) * FNV_PRIME) ^ (HASH_T)k) * FNV_PRIME);
+uint hash(uint i, uint j, uint k) {
+  return (uint)((((((OFFSET_BASIS ^ (uint)i) * FNV_PRIME) ^ (uint)j) * FNV_PRIME) ^ (uint)k) * FNV_PRIME);
 }
+
+// LCG Random Number Generator
+#define rng(last) ((1103515245 * last + 12345) % 0x100000000)
+
+
+#define BIGNUM 888
 
 //~ FLOAT_T our_distance(Point p1, Point p2) {
     //~ Point d = fabs(p1-p2);
@@ -49,9 +52,6 @@ void insert(FLOAT_T *arr, FLOAT_T value) {
   }
 }
 
-// LCG Random Number Generator
-#define rng(last) ((1103515245 * last + 12345) % 0x100000000)
-
 // Generated with "AccountingForm[N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]*2^32]" //"N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
 uint prob_lookup(uint value)
 {
@@ -67,54 +67,61 @@ uint prob_lookup(uint value)
 }
 
 void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint cube) {
-  uint rngLast = rng( hash(cube.x, cube.y, cube.z) );
-  uint rng1,rng2,rng3;
-  Point randomDiff,featurePoint,c;
-  uint numFPoints = prob_lookup( rngLast );
-  c = convert_float4(cube);
-  
-  for(uint i = 0; i < numFPoints; ++i) {
-	rng1 = rng(rngLast);
-	rng2 = rng(rng1);
-	rng3 = rng(rng2);
-	rngLast = rng3;
 
-	randomDiff.x = (float)rng1 / 0x100000000;
-	randomDiff.y = (float)rng2 / 0x100000000;
-	randomDiff.z = (float)rng3 / 0x100000000;
-	featurePoint = randomDiff + c;
-
-	insert(distanceArray, our_distance(p,featurePoint));
-  }
 }
 
-void forAll(FLOAT_T *distanceArray, Point p) {
+PointColor filter_worley(PointColor input) {
+    FLOAT_T darr[N];
+    for(int i=0; i<N; ++i)
+	darr[i] = BIGNUM;
+    
+    IntPoint cube;
+    uint rngLast,numFPoints;
+    Point randomDiff,featurePoint;
+    
     for(int i=-1; i < 2; ++i) {
 	for(int j=-1; j < 2; ++j) {
 	    for(int k=-1; k < 2; ++k) {
-		IntPoint cube;
-		cube.x = p.x + i;
-		cube.y = p.y + j;
-		cube.z = p.z + k;
-		findDistancesForCube(distanceArray, p, cube);
+		cube.x = input.point.x + i;
+		cube.y = input.point.y + j;
+		cube.z = input.point.z + k;
+		rngLast = rng( hash(cube.x, cube.y, cube.z) );
+		
+		// Find the number of feature points in the cube
+		numFPoints = prob_lookup( rngLast );
+		  
+		for(uint i = 0; i < numFPoints; ++i) {
+		    rngLast = rng(rngLast);
+		    randomDiff.x = (float)rngLast / 0x100000000;
+		    
+		    rngLast = rng(rngLast);
+		    randomDiff.y = (float)rngLast / 0x100000000;
+		    
+		    rngLast = rng(rngLast);
+		    randomDiff.z = (float)rngLast / 0x100000000;
+		    
+		    featurePoint = randomDiff + convert_float4(cube);
+
+		    insert(darr, our_distance(input.point,featurePoint));
+		}
 	    }
 	}
     }
+    
+    input.color.xyz = darr[1] - darr[0];
+    input.color.w = 1;
+    
+    return input;
 }
 
-__kernel void WorleyNoise(__global float4 *input, __global FLOAT_T *output) {
+__kernel void WorleyNoise(__global float4 *input, __global float4 *output) {
     uint id = get_global_id(0);
     uint len = get_global_size(0);
 
-  // Shall we do work?
-  if(id < len) {      
-	// Initalize array
-	FLOAT_T darr[N];
-	for(int i=0; i<N; ++i)
-	  darr[i] = 888;
-	
-	forAll(darr,input[id]);
-
-	output[id] = darr[1] - darr[0]; 
-  }
+    // Shall we do work?
+    if(id < len) {
+	PointColor inp;
+	inp.point = input[id];
+	output[id] = filter_worley(inp).color;
+    }
 } 

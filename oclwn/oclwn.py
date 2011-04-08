@@ -75,8 +75,8 @@ maxwgs = device.get_info(cl.device_info.MAX_WORK_GROUP_SIZE)
 print "This device supports up to {0} threads per work group.".format(maxwgs)
 
 # Create input array
-height = 1024 
-width = 512
+width = 1920
+height = 1080
 arr = []
 for x in xrange(height):
     for y in xrange(width):
@@ -102,13 +102,12 @@ t = time.time() # Start timing the GL code
 input_buf = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=input_array)
 
 # Allocate space for output buffer
-output = numpy.zeros(len(input_array),numpy.float32)
+output = numpy.zeros((len(input_array),4),numpy.float32)
 output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
 
 # Start compute - call the matmult kernel function using command queue queue, 2d global work size as given, and 2d local work size as given
 # Returns immediately -- we block at the enqueue_read_buffer
-worker.WorleyNoise(queue, (len(input_array),), None, 
-	input_buf, output_buf)
+worker.WorleyNoise(queue, (len(input_array),), None, input_buf, output_buf)
 
 # Read output buffer back to host 
 cl.enqueue_read_buffer(queue, output_buf, output).wait()
@@ -117,28 +116,10 @@ cl.enqueue_read_buffer(queue, output_buf, output).wait()
 gputime = time.time() - t
 print "gpu time: {0:8.2f}ms".format(gputime * 1000)
 
-#~ 
-#~ imgout = numpy.zeros( (height,width), dtype=numpy.float32)
-#~ for x in xrange(height):
-    #~ for y in xrange(width):
-        #~ vv = output[]
-        #~ imgout[x,y] = vv
-
-#if depth != 1: raise Exception("Can't write 3d image as a PGM :)")
-# Write PGM
-#~ with open('output.pgm','w') as out:
-    #~ out.write('P2\n{0} {1}\n255\n'.format(height,width))
-    #~ for value in (output * 255).astype(numpy.uint32):
-        #~ out.write(str(value) + ' ')
-
-# Write JPG
+# Write image using PIL
 from PIL import Image
-output.shape = (height,width)
+output.shape = (height,width,4)
 im = Image.fromarray( (output*255).astype(numpy.ubyte) )
-#print (output*255).astype(numpy.ubyte)
 fn = '{0}.png'.format(os.environ.get('USER','unknown'))
 im.save(fn)
 print "Saved image to {0}".format(fn)
-
-
-
