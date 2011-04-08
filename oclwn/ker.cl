@@ -79,12 +79,13 @@ uint prob_lookup(uint value)
  //~ else return 9; 
 //~ }
 
-void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint c) {
-  uint rngLast = rng( hash(c.x, c.y, c.z) );
+void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint cube) {
+  uint rngLast = rng( hash(cube.x, cube.y, cube.z) );
   uint rng1,rng2,rng3;
-  Point randomDiff,featurePoint;
+  Point randomDiff,featurePoint,c;
   uint numFPoints = prob_lookup( rngLast );
-
+  c = convert_float4(cube);
+  
   for(uint i = 0; i < numFPoints; ++i) {
 	rng1 = rng(rngLast);
 	rng2 = rng(rng1);
@@ -94,7 +95,7 @@ void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint c) {
 	randomDiff.x = (float)rng1 / 0x100000000;
 	randomDiff.y = (float)rng2 / 0x100000000;
 	randomDiff.z = (float)rng3 / 0x100000000;
-	featurePoint = randomDiff + convert_float4(c);
+	featurePoint = randomDiff + c;
 
 	insert(distanceArray, our_distance(p,featurePoint));
   }
@@ -114,28 +115,19 @@ void forAll(FLOAT_T *distanceArray, Point p) {
     }
 }
 
-__kernel void WorleyNoise(__global FLOAT_T *arrX, __global FLOAT_T *arrY, __global FLOAT_T *arrZ, __global FLOAT_T *output) {//, int width, int height, int depth) {
-    uint idX = get_global_id(0);
-    uint idY = get_global_id(1);
-    uint idZ = get_global_id(2);
-    uint width = get_global_size(0);
-    uint height = get_global_size(1);
-    uint depth = get_global_size(2);
+__kernel void WorleyNoise(__global float4 *input, __global FLOAT_T *output) {
+    uint id = get_global_id(0);
+    uint len = get_global_size(0);
 
   // Shall we do work?
-  if(idX < width && idY < height && idZ < depth) {
+  if(id < len) {      
 	// Initalize array
 	FLOAT_T darr[N];
 	for(int i=0; i<N; ++i)
 	  darr[i] = 888;
 	
-	Point p;
-	p.x = arrX[idX];
-	p.y = arrY[idY];
-	p.z = arrZ[idZ];
-	forAll(darr,p);
-	//findDistancesForCube(darr, p, convert_int4(p));
+	forAll(darr,input[id]);
 
-	output[depth*height*idX + depth*idY + idZ] = darr[1] - darr[0]; 
+	output[id] = darr[1] - darr[0]; 
   }
 } 
