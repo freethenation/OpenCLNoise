@@ -9,6 +9,8 @@ import math
 import sys
 import os
 
+float4 = numpy.dtype('f4')
+
 # Function to prompt for device selection
 def askLongOptions(prompt,options):
     print("{0}:".format(prompt))
@@ -46,9 +48,12 @@ parser = optparse.OptionParser()
 parser.add_option("-d", "--device", # Which device to use?
     action="store", type=int, dest="device", default=None,
     help="which compute device to use (starts at 0)")
-#~ parser.add_option("-w", "--height",
-    #~ default=132, type=int, dest="height",
-    #~ help="height of matrix (default: %default)")
+parser.add_option("-W", "--width",
+    default=800, type=int, dest="width",
+    help="width of image (default: %default)")
+parser.add_option("-H", "--height",
+    default=600, type=int, dest="height",
+    help="height of image (default: %default)")
 #~ parser.add_option("-n", "--no-cpu",
     #~ default=True, action="store_false", dest="allowcpucompute",
     #~ help="prevent CPU computation")
@@ -75,13 +80,15 @@ maxwgs = device.get_info(cl.device_info.MAX_WORK_GROUP_SIZE)
 print "This device supports up to {0} threads per work group.".format(maxwgs)
 
 # Create input array
-width = 512
-height = 512
-arr = []
-for x in xrange(height):
-    for y in xrange(width):
-        arr.append((x/50.0,y/50.0,0,0))
-input_array = numpy.array(arr,dtype=numpy.float32)
+width = options.width
+height = options.height
+step = 50.0
+
+print "Building array...",
+sys.stdout.flush()
+t = time.time()
+input_array = numpy.array([(x/step,y/step) for x in xrange(height) for y in xrange(width)],dtype=numpy.float32)
+print "{0:.2f}ms".format((time.time() - t) * 1000)
 
 print "Working on {0} element array.".format(len(input_array))
 
@@ -94,14 +101,16 @@ context = cl.Context([device],None,None) # Create a context
 kernel = ''
 with open('utility.cl','r') as inp: kernel += inp.read() + '\n'
 with open('worley.cl','r') as inp: kernel += inp.read() + '\n'
+with open('saltandpepper.cl','r') as inp: kernel += inp.read() + '\n'
+with open('add.cl','r') as inp: kernel += inp.read() + '\n'
 with open('kernel.cl','r') as inp: kernel += inp.read() + '\n'
 
 # Build a Program object -- kernel is compiled here, too. Can be cached for more responsiveness.
 t = time.time()
 defines = {
     'PARAM_N':2,
-    'PARAM_FUNCTION': 'darr[1] - darr[0]',
-    #'PARAM_CHESSBOARD':0
+    'PARAM_FUNCTION': 'darr[0]',
+    'PARAM_CHESSBOARD':0
 }
 print "Building...",
 sys.stdout.flush()
@@ -119,7 +128,7 @@ output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_
 
 # Start compute
 # Returns immediately -- we block at the enqueue_read_buffer
-worker.WorleyNoise(queue, (len(input_array),), None, input_buf, output_buf)
+worker.FilterChain(queue, (len(input_array),), None, input_buf, output_buf)
 
 # Read output buffer back to host 
 cl.enqueue_read_buffer(queue, output_buf, output).wait()
