@@ -87,9 +87,10 @@ step = 50.0
 print "Building array...",
 sys.stdout.flush()
 t = time.time()
-input_array = numpy.array([(x/step,y/step) for x in xrange(height) for y in xrange(width)],dtype=numpy.float32)
+input_array = numpy.array([(x/step,y/step,0,0) for x in xrange(height) for y in xrange(width)],dtype=numpy.float32)
 print "{0:.2f}ms".format((time.time() - t) * 1000)
-print input_array
+
+#print input_array
 
 print "Working on {0} element array.".format(len(input_array))
 
@@ -99,28 +100,37 @@ print "Working on {0} element array.".format(len(input_array))
 # Set up OpenCL
 context = cl.Context([device],None,None) # Create a context
 
+filterlist = []
+from worley import FilterWorley
+fw = FilterWorley(function='F2-F1',distance='chessboard')
+filterlist.append(fw)
+
+invocations = '\n'.join([f.build_invocation_string() for f in filterlist])
+
+print "Filters:"
+for f in filterlist:
+    print '\t',f
+
 kernel = ''
 with open('utility.cl','r') as inp: kernel += inp.read() + '\n'
-with open('worley.cl','r') as inp: kernel += inp.read() + '\n'
-#with open('saltandpepper.cl','r') as inp: kernel += inp.read() + '\n'
-#with open('add.cl','r') as inp: kernel += inp.read() + '\n'
-with open('kernel.cl','r') as inp: kernel += inp.read() + '\n'
+for f in filterlist: kernel += f.build_source() + '\n'
+with open('kernel.cl','r') as inp: kernel += inp.read().replace('<< FILTERS HERE >>',invocations) + '\n'
 
 # Build a Program object -- kernel is compiled here, too. Can be cached for more responsiveness.
 t = time.time()
-defines = {
-    'PARAM_N':2,
-    'PARAM_FUNCTION': 'darr[0]',
-    #'PARAM_DISTANCE_MANHATTAN':0
-}
 print "Building...",
 sys.stdout.flush()
-definearr = []
-for k,v in defines.iteritems():
-    if v and isinstance(v,basestring) and ' ' in v: v = '"{0}"'.format(v)
-    if v: v = '='+str(v)
-    definearr.append('-D{0}{1}'.format(k,v))
-worker = cl.Program(context, kernel).build(' '.join(definearr))
+#~ defines = {
+    #~ 'PARAM_N':2,
+    #~ 'PARAM_FUNCTION': 'darr[0]',
+    #~ #'PARAM_DISTANCE_MANHATTAN':0
+#~ }
+#~ definearr = []
+#~ for k,v in defines.iteritems():
+    #~ if v and isinstance(v,basestring) and ' ' in v: v = '"{0}"'.format(v)
+    #~ if v: v = '='+str(v)
+    #~ definearr.append('-D{0}{1}'.format(k,v))
+worker = cl.Program(context, kernel).build()
 queue = cl.CommandQueue(context)
 print "{0:.2f}ms".format((time.time() - t) * 1000)
 

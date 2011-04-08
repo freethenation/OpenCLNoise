@@ -1,41 +1,41 @@
 #define BIGNUM 888
 
-#ifdef PARAM_DISTANCE_CHESSBOARD
-FLOAT_T our_distance(Point p1, Point p2) {
-    Point d = fabs(p1-p2);
-    if(d.x > d.y && d.x > d.z)
-	return d.x;
-    if(d.y > d.z)
-	return d.y;
-    return d.z;
-}
-#else
-
-#ifdef PARAM_DISTANCE_MANHATTAN
-FLOAT_T our_distance(Point p1, Point p2) {
-    return fabs(p1.x-p2.x) + fabs(p1.y-p2.y) + fabs(p1.z-p2.z);
-}
-#else // Euclidian
+//~ #ifdef WORLEY_DISTANCE_CHESSBOARD
+//~ FLOAT_T our_distance(Point p1, Point p2) {
+    //~ max(max(fabs(p1-p2).x,fabs(p1-p2).y),fabs(p1-p2).z);
+    //~ if(d.x > d.y && d.x > d.z)
+	//~ return d.x;
+    //~ if(d.y > d.z)
+	//~ return d.y;
+    //~ return d.z;
+//~ }
+//~ #else
+//~ 
+//~ #ifdef WORLEY_DISTANCE_MANHATTAN
+//~ FLOAT_T our_distance(Point p1, Point p2) {
+    //~ return fabs(p1.x-p2.x) + fabs(p1.y-p2.y) + fabs(p1.z-p2.z);
+//~ }
+//~ #else // Euclidian
 // Return the square of the distance between points p1 and p2
-FLOAT_T our_distance(Point p1, Point p2) {
-  return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
-}
-#endif
-
-#endif
+//~ FLOAT_T our_distance(Point p1, Point p2) {
+  //~ return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
+//~ }
+//~ #endif
+//~ 
+//~ #endif
 
 void insert(FLOAT_T *arr, FLOAT_T value) {
   // Ugly hack to prevent duplicate values
-  for(int i=0; i < PARAM_N; ++i)
+  for(int i=0; i < WORLEY_N; ++i)
     if(arr[i] == value)
   	return;
 
   float temp;
-  for(int i=PARAM_N-1; i>=0; i--) {
+  for(int i=WORLEY_N-1; i>=0; i--) {
     if(value > arr[i]) break;
     temp = arr[i];
     arr[i] = value;
-    if(i+1<PARAM_N) arr[i+1] = temp;
+    if(i+1<WORLEY_N) arr[i+1] = temp;
   }
 }
 
@@ -54,8 +54,8 @@ uint prob_lookup(uint value)
 }
 
 PointColor filter_worley(PointColor input) {
-    FLOAT_T darr[PARAM_N];
-    for(int i=0; i<PARAM_N; ++i)
+    FLOAT_T darr[WORLEY_N];
+    for(int i=0; i<WORLEY_N; ++i)
 	darr[i] = BIGNUM;
     
     IntPoint cube;
@@ -91,7 +91,7 @@ PointColor filter_worley(PointColor input) {
 	}
     }
     
-    input.color.xyz = PARAM_FUNCTION;
+    input.color.xyz = WORLEY_FUNCTION;
     input.color.w = 1;
     
     return input;
