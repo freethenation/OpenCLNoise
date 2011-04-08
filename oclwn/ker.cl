@@ -50,9 +50,7 @@ void insert(FLOAT_T *arr, FLOAT_T value) {
 }
 
 // LCG Random Number Generator
-uint rng(uint last) {
-  return ((1103515245 * last + 12345) % 0x100000000);
-}
+#define rng(last) ((1103515245 * last + 12345) % 0x100000000)
 
 // Generated with "AccountingForm[N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]*2^32]" //"N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
 uint prob_lookup(uint value)
