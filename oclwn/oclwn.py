@@ -78,8 +78,8 @@ print "This device supports up to {0} threads per work group.".format(maxwgs)
 height = 1024 
 width = 512
 arr = []
-for x in xrange(width):
-    for y in xrange(height):
+for x in xrange(height):
+    for y in xrange(width):
         arr.append((x/50.0,y/50.0,0,0))
 input_array = numpy.array(arr,dtype=numpy.float32)
 
