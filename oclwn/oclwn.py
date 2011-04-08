@@ -13,7 +13,7 @@ import os
 def askLongOptions(prompt,options):
     print("{0}:".format(prompt))
     for i,o in enumerate(options):
-        print("\t{0}: {1}".format(i,o))
+        print("\t{0}: {1}".format(i,o.name))
     while 1:
         x = raw_input('? ')
         try:
@@ -75,8 +75,8 @@ maxwgs = device.get_info(cl.device_info.MAX_WORK_GROUP_SIZE)
 print "This device supports up to {0} threads per work group.".format(maxwgs)
 
 # Create input array
-width = 1920
-height = 1080
+width = 512
+height = 512
 arr = []
 for x in xrange(height):
     for y in xrange(width):
@@ -90,12 +90,24 @@ print "Working on {0} element array.".format(len(input_array))
 
 # Set up OpenCL
 context = cl.Context([device],None,None) # Create a context
-with open('ker.cl','r') as inp:
-    kernel = inp.read()
+
+kernel = ''
+with open('utility.cl','r') as inp: kernel += inp.read() + '\n'
+with open('worley.cl','r') as inp: kernel += inp.read() + '\n'
+with open('kernel.cl','r') as inp: kernel += inp.read() + '\n'
 
 # Build a Program object -- kernel is compiled here, too. Can be cached for more responsiveness.
-worker = cl.Program(context, kernel).build()
+t = time.time()
+defines = {
+    'PARAM_N':2,
+    'PARAM_FUNCTION': 'darr[1] - darr[0]',
+    #'PARAM_CHESSBOARD':0
+}
+print "Building...",
+sys.stdout.flush()
+worker = cl.Program(context, kernel).build(' '.join(['-D{0}="{1}"'.format(k,v or '') for (k,v) in defines.iteritems()]))
 queue = cl.CommandQueue(context)
+print "{0:.2f}ms".format((time.time() - t) * 1000)
 
 # Prepare input buffers
 t = time.time() # Start timing the GL code
@@ -105,7 +117,7 @@ input_buf = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_P
 output = numpy.zeros((len(input_array),4),numpy.float32)
 output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
 
-# Start compute - call the matmult kernel function using command queue queue, 2d global work size as given, and 2d local work size as given
+# Start compute
 # Returns immediately -- we block at the enqueue_read_buffer
 worker.WorleyNoise(queue, (len(input_array),), None, input_buf, output_buf)
 

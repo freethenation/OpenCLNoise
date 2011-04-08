@@ -1,54 +1,33 @@
-#define N 5
-
-#define FLOAT_T float
-typedef float4 Point;
-typedef int4 IntPoint;
-
-typedef struct PointColor {
-    Point point;
-    Point color;
-} PointColor;
-
-#define OFFSET_BASIS 2166136261
-#define FNV_PRIME 16777619
-
-// FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
-uint hash(uint i, uint j, uint k) {
-  return (uint)((((((OFFSET_BASIS ^ (uint)i) * FNV_PRIME) ^ (uint)j) * FNV_PRIME) ^ (uint)k) * FNV_PRIME);
-}
-
-// LCG Random Number Generator
-#define rng(last) ((1103515245 * last + 12345) % 0x100000000)
-
-
 #define BIGNUM 888
 
-//~ FLOAT_T our_distance(Point p1, Point p2) {
-    //~ Point d = fabs(p1-p2);
-    //~ if(d.x > d.y && d.x > d.z)
-	//~ return d.x;
-    //~ if(d.y > d.z)
-	//~ return d.y;
-    //~ return d.z;
-//~ }
-
+#ifdef PARAM_CHESSBOARD
+FLOAT_T our_distance(Point p1, Point p2) {
+    Point d = fabs(p1-p2);
+    if(d.x > d.y && d.x > d.z)
+	return d.x;
+    if(d.y > d.z)
+	return d.y;
+    return d.z;
+}
+#else
 // Return the square of the distance between points p1 and p2
 FLOAT_T our_distance(Point p1, Point p2) {
   return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
 }
+#endif
 
 void insert(FLOAT_T *arr, FLOAT_T value) {
   // Ugly hack to prevent duplicate values
-  for(int i=0; i < N; ++i)
+  for(int i=0; i < PARAM_N; ++i)
     if(arr[i] == value)
   	return;
 
   float temp;
-  for(int i=N-1; i>=0; i--) {
+  for(int i=PARAM_N-1; i>=0; i--) {
     if(value > arr[i]) break;
     temp = arr[i];
     arr[i] = value;
-    if(i+1<N) arr[i+1] = temp;
+    if(i+1<PARAM_N) arr[i+1] = temp;
   }
 }
 
@@ -66,13 +45,9 @@ uint prob_lookup(uint value)
     return 9;
 }
 
-void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint cube) {
-
-}
-
 PointColor filter_worley(PointColor input) {
-    FLOAT_T darr[N];
-    for(int i=0; i<N; ++i)
+    FLOAT_T darr[PARAM_N];
+    for(int i=0; i<PARAM_N; ++i)
 	darr[i] = BIGNUM;
     
     IntPoint cube;
@@ -108,20 +83,9 @@ PointColor filter_worley(PointColor input) {
 	}
     }
     
-    input.color.xyz = darr[1] - darr[0];
+    input.color.xyz = PARAM_FUNCTION;
     input.color.w = 1;
     
     return input;
 }
 
-__kernel void WorleyNoise(__global float4 *input, __global float4 *output) {
-    uint id = get_global_id(0);
-    uint len = get_global_size(0);
-
-    // Shall we do work?
-    if(id < len) {
-	PointColor inp;
-	inp.point = input[id];
-	output[id] = filter_worley(inp).color;
-    }
-} 
