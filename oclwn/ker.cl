@@ -50,9 +50,7 @@ void insert(FLOAT_T *arr, FLOAT_T value) {
 }
 
 // LCG Random Number Generator
-uint rng(uint last) {
-  return ((1103515245 * last + 12345) % 0x100000000);
-}
+#define rng(last) ((1103515245 * last + 12345) % 0x100000000)
 
 // Generated with "AccountingForm[N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]*2^32]" //"N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
 uint prob_lookup(uint value)
@@ -67,17 +65,6 @@ uint prob_lookup(uint value)
     if(value < 4203212043) return 8;
     return 9;
 }
-    
- //~ if(value < 0.091578194443670901469) return 1;
- //~ else if(value < 0.23810330555354434382) return 2;
- //~ else if(value < 0.43347012036670893362) return 3;
- //~ else if(value < 0.62883693517987352342) return 4;
- //~ else if(value < 0.78513038703040519526) return 5;
- //~ else if(value < 0.88932602159742630982) return 6;
- //~ else if(value < 0.94886638420715266099) return 7;
- //~ else if(value < 0.97863656551201583658) return 8;
- //~ else return 9; 
-//~ }
 
 void findDistancesForCube(FLOAT_T *distanceArray, Point p, IntPoint cube) {
   uint rngLast = rng( hash(cube.x, cube.y, cube.z) );
