@@ -1,6 +1,6 @@
 #define BIGNUM 888
 
-#ifdef PARAM_CHESSBOARD
+#ifdef PARAM_DISTANCE_CHESSBOARD
 FLOAT_T our_distance(Point p1, Point p2) {
     Point d = fabs(p1-p2);
     if(d.x > d.y && d.x > d.z)
@@ -10,10 +10,18 @@ FLOAT_T our_distance(Point p1, Point p2) {
     return d.z;
 }
 #else
+
+#ifdef PARAM_DISTANCE_MANHATTAN
+FLOAT_T our_distance(Point p1, Point p2) {
+    return fabs(p1.x-p2.x) + fabs(p1.y-p2.y) + fabs(p1.z-p2.z);
+}
+#else // Euclidian
 // Return the square of the distance between points p1 and p2
 FLOAT_T our_distance(Point p1, Point p2) {
   return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
 }
+#endif
+
 #endif
 
 void insert(FLOAT_T *arr, FLOAT_T value) {
