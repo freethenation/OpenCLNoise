@@ -95,20 +95,21 @@ filterlist = []
 
 from scaletrans import FilterScaleTrans
 from worley import FilterWorley
+from genericfilter import GenericFilter
 filterlist.append( FilterScaleTrans(scale=(10,10,1)) )
+filterlist.append( GenericFilter('checkerboard.cl','v = filter_checkerboard(v);') )
 #filterlist.append( FilterWorley(function='F2-F1',distance='manhattan') )
 
-invocations = '\n'.join([f.build_invocation_string() for f in filterlist]) + '\nv = filter_checkerboard(v);'
 
+# Print the filters
 print "Filters:"
 for f in filterlist:
-    print '\t',f
+    print '  ',f
 
 kernel = ''
 with open('utility.cl','r') as inp: kernel += inp.read() + '\n'
 for f in filterlist: kernel += f.build_source() + '\n'
-with open('checkerboard.cl','r') as inp: kernel += inp.read() + '\n'
-with open('kernel.cl','r') as inp: kernel += inp.read().replace('<< FILTERS HERE >>',invocations) + '\n'
+with open('kernel.cl','r') as inp: kernel += inp.read().replace('<< FILTERS HERE >>','\n'.join([f.build_invocation_string() for f in filterlist])) + '\n'
 
 # Build a Program object -- kernel is compiled here, too. Can be cached for more responsiveness.
 t = time.time()
