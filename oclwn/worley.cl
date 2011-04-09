@@ -1,41 +1,37 @@
-#define BIGNUM 888
+#define WORLEY_BIGNUM 888
 
-//~ #ifdef WORLEY_DISTANCE_CHESSBOARD
-//~ FLOAT_T our_distance(Point p1, Point p2) {
-    //~ max(max(fabs(p1-p2).x,fabs(p1-p2).y),fabs(p1-p2).z);
-    //~ if(d.x > d.y && d.x > d.z)
-	//~ return d.x;
-    //~ if(d.y > d.z)
-	//~ return d.y;
-    //~ return d.z;
-//~ }
-//~ #else
-//~ 
-//~ #ifdef WORLEY_DISTANCE_MANHATTAN
-//~ FLOAT_T our_distance(Point p1, Point p2) {
-    //~ return fabs(p1.x-p2.x) + fabs(p1.y-p2.y) + fabs(p1.z-p2.z);
-//~ }
-//~ #else // Euclidian
-// Return the square of the distance between points p1 and p2
-//~ FLOAT_T our_distance(Point p1, Point p2) {
-  //~ return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
-//~ }
-//~ #endif
-//~ 
-//~ #endif
+// Defaults for arguments
+#ifndef WORLEY_NUMVALUES
+#define WORLEY_NUMVALUES 2 // Number of distances to calculate
+#endif
+#ifndef WORLEY_DISTANCE
+#define WORLEY_DISTANCE 0 // Euclidian distance
+#endif
+#ifndef WORLEY_FUNCTION
+#define WORLEY_FUNCTION F[1] - F[0] // Worley noise function - indicies start at 0
+#endif
+
+// Pick the correct distance formula
+#if WORLEY_DISTANCE == 0 // Euclidian
+#define our_distance(p1,p2) (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z)
+#elif WORLEY_DISTANCE == 1 // Manhattan
+#define our_distance(p1,p2) fabs(p1.x-p2.x) + fabs(p1.y-p2.y) + fabs(p1.z-p2.z)
+#elif WORLEY_DISTANCE == 2 // Chebyshev
+#define our_distance(p1,p2) max(max(fabs(p1-p2).x,fabs(p1-p2).y),fabs(p1-p2).z)
+#endif
 
 void insert(FLOAT_T *arr, FLOAT_T value) {
   // Ugly hack to prevent duplicate values
-  for(int i=0; i < WORLEY_N; ++i)
-    if(arr[i] == value)
-  	return;
+  //~ for(int i=0; i < WORLEY_NUMVALUES; ++i)
+    //~ if(arr[i] == value)
+  	//~ return;
 
   float temp;
-  for(int i=WORLEY_N-1; i>=0; i--) {
+  for(int i=WORLEY_NUMVALUES-1; i>=0; i--) {
     if(value > arr[i]) break;
     temp = arr[i];
     arr[i] = value;
-    if(i+1<WORLEY_N) arr[i+1] = temp;
+    if(i+1<WORLEY_NUMVALUES) arr[i+1] = temp;
   }
 }
 
@@ -54,9 +50,9 @@ uint prob_lookup(uint value)
 }
 
 PointColor filter_worley(PointColor input) {
-    FLOAT_T darr[WORLEY_N];
-    for(int i=0; i<WORLEY_N; ++i)
-	darr[i] = BIGNUM;
+    FLOAT_T F[WORLEY_NUMVALUES];
+    for(int i=0; i<WORLEY_NUMVALUES; ++i)
+	F[i] = WORLEY_BIGNUM;
     
     IntPoint cube;
     uint rngLast,numFPoints;
@@ -68,7 +64,7 @@ PointColor filter_worley(PointColor input) {
 		cube.x = input.point.x + i;
 		cube.y = input.point.y + j;
 		cube.z = input.point.z + k;
-		rngLast = rng( hash(cube.x, cube.y, cube.z) );
+		rngLast = rng( hash(cube.x + (int)input.point.w, cube.y, cube.z) );
 		
 		// Find the number of feature points in the cube
 		numFPoints = prob_lookup( rngLast );
@@ -85,7 +81,7 @@ PointColor filter_worley(PointColor input) {
 		    
 		    featurePoint = randomDiff + convert_float4(cube);
 
-		    insert(darr, our_distance(input.point,featurePoint));
+		    insert(F, our_distance(input.point,featurePoint));
 		}
 	    }
 	}

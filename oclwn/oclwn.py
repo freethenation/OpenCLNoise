@@ -9,8 +9,6 @@ import math
 import sys
 import os
 
-float4 = numpy.dtype('f4')
-
 # Function to prompt for device selection
 def askLongOptions(prompt,options):
     print("{0}:".format(prompt))
@@ -82,28 +80,23 @@ print "This device supports up to {0} threads per work group.".format(maxwgs)
 # Create input array
 width = options.width
 height = options.height
+depth = 1
 step = 50.0
-
-print "Building array...",
-sys.stdout.flush()
-t = time.time()
-input_array = numpy.array([(x/step,y/step,0,0) for x in xrange(height) for y in xrange(width)],dtype=numpy.float32)
-print "{0:.2f}ms".format((time.time() - t) * 1000)
-
-#print input_array
-
-print "Working on {0} element array.".format(len(input_array))
 
 # Global work size - number of threads to run in total
 #global_work_size = roundUpToIncrements(height,tile_size)
 
 # Set up OpenCL
 context = cl.Context([device],None,None) # Create a context
+queue = cl.CommandQueue(context)
 
+# Build filter list
 filterlist = []
+
+from scaletrans import FilterScaleTrans
 from worley import FilterWorley
-fw = FilterWorley(function='F2-F1',distance='chessboard')
-filterlist.append(fw)
+filterlist.append( FilterScaleTrans(scale=(10,10,1)) )
+filterlist.append( FilterWorley(function='F2-F1',distance='manhattan') )
 
 invocations = '\n'.join([f.build_invocation_string() for f in filterlist])
 
@@ -120,31 +113,16 @@ with open('kernel.cl','r') as inp: kernel += inp.read().replace('<< FILTERS HERE
 t = time.time()
 print "Building...",
 sys.stdout.flush()
-#~ defines = {
-    #~ 'PARAM_N':2,
-    #~ 'PARAM_FUNCTION': 'darr[0]',
-    #~ #'PARAM_DISTANCE_MANHATTAN':0
-#~ }
-#~ definearr = []
-#~ for k,v in defines.iteritems():
-    #~ if v and isinstance(v,basestring) and ' ' in v: v = '"{0}"'.format(v)
-    #~ if v: v = '='+str(v)
-    #~ definearr.append('-D{0}{1}'.format(k,v))
 worker = cl.Program(context, kernel).build()
-queue = cl.CommandQueue(context)
 print "{0:.2f}ms".format((time.time() - t) * 1000)
 
-# Prepare input buffers
 t = time.time() # Start timing the GL code
-input_buf = cl.Buffer(context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=input_array)
-
 # Allocate space for output buffer
-output = numpy.zeros((len(input_array),4),numpy.float32)
+output = numpy.zeros((width*height*depth,4),numpy.float32)
 output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
 
 # Start compute
-# Returns immediately -- we block at the enqueue_read_buffer
-worker.FilterChain(queue, (len(input_array),), None, input_buf, output_buf)
+worker.ZeroToOneKernel(queue, (width,height,depth), None, output_buf)
 
 # Read output buffer back to host 
 cl.enqueue_read_buffer(queue, output_buf, output).wait()
