@@ -50,7 +50,7 @@ parser.add_option("-W", "--width",
     default=800, type=int, dest="width",
     help="width of image (default: %default)")
 parser.add_option("-H", "--height",
-    default=600, type=int, dest="height",
+    default=800, type=int, dest="height",
     help="height of image (default: %default)")
 #~ parser.add_option("-n", "--no-cpu",
     #~ default=True, action="store_false", dest="allowcpucompute",
@@ -96,10 +96,9 @@ filterlist = []
 from scaletrans import FilterScaleTrans
 from worley import FilterWorley
 from genericfilter import GenericFilter
-filterlist.append( FilterScaleTrans(scale=(10,10,1)) )
-filterlist.append( GenericFilter('checkerboard.cl','v = filter_checkerboard(v);') )
-#filterlist.append( FilterWorley(function='F2-F1',distance='manhattan') )
-
+filterlist.append( FilterScaleTrans(scale=(10.0,10.0,1), translate=(-5,-5,0) ))
+filterlist.append( FilterWorley(function='F2-F1',distance='euclidian') )
+#filterlist.append( GenericFilter('checkerboard.cl','v = filter_checkerboard(v);') )
 
 # Print the filters
 print "Filters:"

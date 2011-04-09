@@ -2,7 +2,7 @@
 #define SCALETRANS_SCALE (10.0,10.0,1.0,0)
 #endif
 #ifndef SCALETRANS_TRANSLATE
-#define SCALETRANS_TRANSLATE (float4)(0.0,0.0,0.0,0)
+#define SCALETRANS_TRANSLATE (0.0,0.0,0.0,0)
 #endif
 
 PointColor filter_scaletrans(PointColor input) {  

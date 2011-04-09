@@ -21,11 +21,6 @@
 #endif
 
 void insert(FLOAT_T *arr, FLOAT_T value) {
-  // Ugly hack to prevent duplicate values
-  //~ for(int i=0; i < WORLEY_NUMVALUES; ++i)
-    //~ if(arr[i] == value)
-  	//~ return;
-
   float temp;
   for(int i=WORLEY_NUMVALUES-1; i>=0; i--) {
     if(value > arr[i]) break;
@@ -61,9 +56,7 @@ PointColor filter_worley(PointColor input) {
     for(int i=-1; i < 2; ++i) {
 	for(int j=-1; j < 2; ++j) {
 	    for(int k=-1; k < 2; ++k) {
-		cube.x = input.point.x + i;
-		cube.y = input.point.y + j;
-		cube.z = input.point.z + k;
+		cube = convert_int4_rtn(input.point) + (int4)(i,j,k,0);
 		rngLast = rng( hash(cube.x + (int)input.point.w, cube.y, cube.z) );
 		
 		// Find the number of feature points in the cube
