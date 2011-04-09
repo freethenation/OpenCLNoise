@@ -10,6 +10,11 @@ import re
 def Property(func): return property(**func())
 class FilterWorley(object):
 	__FILENAME = 'worley.cl'
+	__INPUTS = 1
+	__FLOATARGS = 0
+	__INTARGS = 1
+	__FLOAT4ARGS = 0
+	__INT4ARGS = 0
 	
 	def __init__(self,function='F1',distance='euclidian'):
 		self.__function = ''
