@@ -96,9 +96,9 @@ filterlist = []
 from scaletrans import FilterScaleTrans
 from worley import FilterWorley
 filterlist.append( FilterScaleTrans(scale=(10,10,1)) )
-filterlist.append( FilterWorley(function='F2-F1',distance='manhattan') )
+#filterlist.append( FilterWorley(function='F2-F1',distance='manhattan') )
 
-invocations = '\n'.join([f.build_invocation_string() for f in filterlist])
+invocations = '\n'.join([f.build_invocation_string() for f in filterlist]) + '\nv = filter_checkerboard(v);'
 
 print "Filters:"
 for f in filterlist:
@@ -107,6 +107,7 @@ for f in filterlist:
 kernel = ''
 with open('utility.cl','r') as inp: kernel += inp.read() + '\n'
 for f in filterlist: kernel += f.build_source() + '\n'
+with open('checkerboard.cl','r') as inp: kernel += inp.read() + '\n'
 with open('kernel.cl','r') as inp: kernel += inp.read().replace('<< FILTERS HERE >>',invocations) + '\n'
 
 # Build a Program object -- kernel is compiled here, too. Can be cached for more responsiveness.
@@ -121,8 +122,10 @@ t = time.time() # Start timing the GL code
 output = numpy.zeros((width*height*depth,4),numpy.float32)
 output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
 
+seed = 0
+
 # Start compute
-worker.ZeroToOneKernel(queue, (width,height,depth), None, output_buf)
+worker.ZeroToOneKernel(queue, (width,height,depth), None, output_buf, numpy.float32(seed))
 
 # Read output buffer back to host 
 cl.enqueue_read_buffer(queue, output_buf, output).wait()
