@@ -1,3 +1,5 @@
+from os import path
+
 def Property(func): return property(**func())
 class FilterScaleTrans(object):
 	__FILENAME = 'scaletrans.cl'
@@ -11,7 +13,7 @@ class FilterScaleTrans(object):
 		code = ''
 		for k,v in self.__defines.iteritems():
 			code += '#define {0} {1}\n'.format(k,v)
-		with open(self.__FILENAME,'r') as inp: code += inp.read()
+		with open(path.join(path.dirname(__file__),self.__FILENAME),'r') as inp: code += inp.read()
 		code += '\n'
 		return code
 		

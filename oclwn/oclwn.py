@@ -93,8 +93,8 @@ queue = cl.CommandQueue(context)
 # Build filter list
 filterlist = []
 
-from scaletrans import FilterScaleTrans
-from worley import FilterWorley
+from transforms.scaletrans import FilterScaleTrans
+from generators.worley import FilterWorley
 from genericfilter import GenericFilter
 filterlist.append( FilterScaleTrans(scale=(10.0,10.0,1), translate=(-5,-5,0) ))
 filterlist.append( FilterWorley(function='F2-F1',distance='euclidian') )

@@ -1,3 +1,5 @@
+from os import path
+
 DISTANCES = {
 	'euclidian': 0,
 	'manhattan': 1,
@@ -52,7 +54,7 @@ class FilterWorley(object):
 		code = ''
 		for k,v in self.__defines.iteritems():
 			code += '#define {0} {1}\n'.format(k,v)
-		with open(self.__FILENAME,'r') as inp: code += inp.read()
+		with open(path.join(path.dirname(__file__),self.__FILENAME),'r') as inp: code += inp.read()
 		code += '\n'
 		return code
 		
