@@ -35,6 +35,9 @@ class BaseFilter(object):
     def __init__(self):
         self.on_code_dirty = Event()      
     
+    def get_name(self):
+        raise NotYetImplemented()
+    
     def get_number_of_inputs(self):
         raise NotYetImplemented()
         
@@ -44,18 +47,3 @@ class BaseFilter(object):
             with open(path) as file:
                 return file.read()
         else: raise NotYetImplemented()
-        
-#class TestFilter(BaseFilter):
-#    def __init__(self):
-#        self._value = None
-#        def changed(old, new):
-#            print old, new
-#        self.s = SimpleFilterArgument(ArgumentTypes.INT, 0, changed)
-#    
-#    @filter_argument(ArgumentTypes.INT, 0)
-#    def value():
-#        def fget(self):
-#            return self._value
-#        def fset(self, value):
-#            self._value = value
-#        return fget, fset, None
