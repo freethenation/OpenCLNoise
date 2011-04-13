@@ -1,5 +1,5 @@
 import inspect
-from os import path
+import os
 from event import Event
 
 class NotYetImplemented(Exception) : pass
@@ -50,8 +50,8 @@ class BaseFilter(object):
         raise NotYetImplemented()
         
     def generate_code(self):
-        if not self._filename:
-            path = path.join(path.dirname(inspect.getfile(self.__class__)), _filename)
+        if self._filename:
+            path = os.path.join(os.path.dirname(inspect.getfile(self.__class__)), self._filename)
             with open(path) as file:
                 return file.read()
         else: raise NotYetImplemented()
