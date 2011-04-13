@@ -36,7 +36,7 @@ def float4(value):
     
 def int4(value):
     ret = tuple(value)
-    if len(value) != 4 raise ValueError()
+    if len(value) != 4: raise ValueError()
 
 class BaseFilter(object):
     _filename = None
