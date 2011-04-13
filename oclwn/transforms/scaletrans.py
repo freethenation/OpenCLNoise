@@ -11,7 +11,7 @@ class ScaleTrans(BaseFilter):
         return "scaletrans"
     
     def get_number_of_inputs(self):
-        return 0
+        return 1
     
     @filter_argument(ArgumentTypes.FLOAT4, 0)
     def scale():
