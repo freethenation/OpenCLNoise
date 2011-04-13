@@ -9,7 +9,7 @@ DISTANCES = {
 
 import re
 
-def Property(func): return property(**func())
+#def Property(func): return property(**func())
 class FilterWorley(object):
 	__FILENAME = 'worley.cl'
 	__INPUTS = 1
@@ -24,25 +24,25 @@ class FilterWorley(object):
 		self.__defines = {}
 		self.distance = distance
 		self.function = function
+	
+	@property
+	def function(self):
+		return self.__function
+	
+	@function.setter
+	def function(self,value):
+		self.__function = value
+		self.__setDefinesFromFunction()
 		
-	@Property
-	def function():
-		def fget(self):
-			return self.__function
-		def fset(self,value):
-			self.__function = value
-			self.__setDefinesFromFunction()
-		return locals()
-		
-	@Property
-	def distance():
-		def fget(self):
-			return self.__distance
-		def fset(self,value):
-			if not value in DISTANCES and value not in DISTANCES.values(): raise ValueError("Invalid distance. Valid options are: {0}".format(DISTANCES.keys()))
-			self.__distance = value
-			self.__defines['WORLEY_DISTANCE'] = DISTANCES[value]
-		return locals()
+	@property
+	def distance(self):
+		return self.__distance
+
+	@distance.setter
+	def distance(self,value):
+		if not value in DISTANCES and value not in DISTANCES.values(): raise ValueError("Invalid distance. Valid options are: {0}".format(DISTANCES.keys()))
+		self.__distance = value
+		self.__defines['WORLEY_DISTANCE'] = DISTANCES[value]
 			
 	def __setDefinesFromFunction(self):
 		self.__defines['WORLEY_NUMVALUES'] = max([int(m.group(1)) for m in re.finditer(r'F(\d*)',self.function)]) # Calculate how many values we must find
