@@ -5,10 +5,10 @@ from event import Event
 class NotYetImplemented(Exception) : pass
 
 class ArgumentTypes:
+    FLOAT = "FLOAT"
+    INT = "INT"
     FLOAT4 = "FLOAT4"
     INT4 = "INT4"
-    INT = "INT"
-    FLOAT = "FLOAT"
 
 class FilterArgument(object) :
     def __init__(self, argument_type, argument_index, fget, fset=None, fdel=None):
@@ -29,6 +29,14 @@ def filter_argument(argument_type, argument_index):
         fget, fset, fdel = func()
         return FilterArgument(argument_type, argument_index, fget, fset, fdel)
     return _filter_argument
+    
+def float4(value):
+    ret = tuple(value)
+    if len(value) != 4: raise ValueError()
+    
+def int4(value):
+    ret = tuple(value)
+    if len(value) != 4 raise ValueError()
 
 class BaseFilter(object):
     _filename = None

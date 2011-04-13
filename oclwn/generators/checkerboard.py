@@ -1,4 +1,4 @@
-import basefilter
+from basefilter import *
 
 class CheckerBoard(BaseFilter):
     _filename = "checkerboard.cl"
@@ -18,13 +18,13 @@ class CheckerBoard(BaseFilter):
         def fget(self):
             return self._black_color
         def fset(self, value):
-            self._black_color = value
+            self._black_color = float4(value)
         return fget, fset, None
         
     @filter_argument(ArgumentTypes.FLOAT4, 1)
-    def black_color():
+    def white_color():
         def fget(self):
             return self._white_color
         def fset(self, value):
-            self._white_color = value
+            self._white_color = float4(value)
         return fget, fset, None
