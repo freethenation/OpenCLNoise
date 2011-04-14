@@ -63,6 +63,7 @@ class FilterStack(object):
         self._list = []
         self._mark_dirty()
         self.runtime = filter_runtime
+        self.__program = None
         if not self.runtime: self.runtime = FilterRuntime()
         
     def _mark_dirty(self, *args):
@@ -74,19 +75,24 @@ class FilterStack(object):
         return self._cached_sourcecode == None
         
     def append(self,filter):
-        filter.on_dirty += self.mark_dirty
+        filter.on_code_dirty += self._mark_dirty
         self._list.append(filter)
         self._mark_dirty()
         
     def pop(self):
         x = self._list.pop()
-        x.on_dirty -= self.mark_dirty
+        x.on_code_dirty -= self._mark_dirty
         self._mark_dirty()
         
     push = append
     add = append
     
-    
+    def run(self):
+        if self.is_dirty or not self.__program:
+            self.__program = self.runtime.compile(self.generate_code())
+        args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
+        return runtime.run(self.__program, "ZeroToOneKernel", 800, 800, 1, args_float, args_int, args_float4, args_int4)
+        
     
     def get_args_arrays(self):
         args_float = []
@@ -198,3 +204,11 @@ __kernel void ZeroToOneKernel(__global float4 *output, __global float *args_floa
             
         return self._cached_sourcecode
 
+##Sample code to get shit running
+#from filterstack import *
+#stack = FilterStack()
+#stack.runtime.device = stack.runtime.get_devices()[1]
+#from generators.checkerboard import CheckerBoard
+#c = CheckerBoard()
+#stack.push(c)
+#stack.run()
