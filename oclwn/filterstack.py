@@ -64,6 +64,9 @@ class FilterStack(object):
         self._mark_dirty()
         self.runtime = filter_runtime
         self.__program = None
+        self.width = 800
+        self.height = 800
+        self.depth = 1
         if not self.runtime: self.runtime = FilterRuntime()
         
     def _mark_dirty(self, *args):
@@ -87,21 +90,24 @@ class FilterStack(object):
     push = append
     add = append
     
-    def run(self):
+    def run(self, width=None, height=None, depth=None):
+        if not width: width = self.width
+        if not height: height = self.height
+        if not depth: depth = self.depth
         if self.is_dirty or not self.__program:
             self.__program = self.runtime.compile(self.generate_code())
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
-        return self.runtime.run(self.__program, "ZeroToOneKernel", 800, 800, 1, args_float, args_int, args_float4, args_int4)
+        return self.runtime.run(self.__program, "ZeroToOneKernel", width, height, depth, args_float, args_int, args_float4, args_int4)
         
-    def gen_image(self):
-        output = self.run()
+    def gen_image(self, width=None, height=None):
+        output = self.run(width, height, 1)
         from PIL import Image
-        output.shape = (800,800,4)
+        output.shape = (width, height,4)
         im = Image.fromarray( (output*255).astype(numpy.ubyte) )
         return im
     
-    def save_image(self, path):
-        im = self.gen_image()
+    def save_image(self, path, width=None, height=None):
+        im = self.gen_image(width, height)
         im.save(path)
         del im
     
