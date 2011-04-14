@@ -91,7 +91,7 @@ class FilterStack(object):
         if self.is_dirty or not self.__program:
             self.__program = self.runtime.compile(self.generate_code())
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
-        return runtime.run(self.__program, "ZeroToOneKernel", 800, 800, 1, args_float, args_int, args_float4, args_int4)
+        return self.runtime.run(self.__program, "ZeroToOneKernel", 800, 800, 1, args_float, args_int, args_float4, args_int4)
         
     
     def get_args_arrays(self):
@@ -190,11 +190,6 @@ __kernel void ZeroToOneKernel(__global float4 *output, __global float *args_floa
     uint depth = get_global_size(2);
 
     uint arrIdx = idX + idY * width + idZ * width * height;
-
-    PointColor v;
-    v.point.x = (float)idX/width;
-    v.point.y = (float)idY/height;
-    v.point.z = (float)idZ/depth;
 '''
             
             self._cached_sourcecode += "\n    PointColor "+', '.join(['o{0}'.format(i) for i in xrange(max_stack_size+1)])+';\n'
