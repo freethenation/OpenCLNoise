@@ -73,7 +73,8 @@ if len(devices) == 1:
 if not device:
     device = askLongOptions("Select a device",devices)
     
-print device.get_info(cl.device_info.LOCAL_MEM_SIZE)
+# Find size of local memory:
+# device.get_info(cl.device_info.LOCAL_MEM_SIZE)
     
 # LAB-SPECIFIC CODE AFTER THIS
 
