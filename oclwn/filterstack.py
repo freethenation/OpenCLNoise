@@ -29,10 +29,30 @@ class FilterRuntime(object):
     def compile(self, code):
         return cl.Program(self.context, code).build()
 
-    def run(self, compiled_program, kernel_name, output_width, output_height, output_depth, *args):
+    def run(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
         output = numpy.zeros((output_width*output_height*output_depth,4),numpy.float32)
         output_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
-        getattr(compiled_program, kernel_name)(self.queue, (output_width, output_height, output_depth), None, args)
+        
+        # Make a buffer out of x. y is type of buffer: 0 - float, 1 - int, 2 - float4, 3 - walrus; returns buffer of 1 element if array is empty
+        def m(x,y):
+            if not x:
+                if y in (2,3):
+                    x = (0,0,0,0)
+                else:
+                    x = 0
+            if x in (0,2):
+                typ = numpy.float32
+            else:
+                typ = numpy.int32
+
+            return cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=numpy.array(x, dtype=typ))
+        
+        nargs_float  = m(args_float,0)
+        nargs_int    = m(args_int,1)
+        nargs_float4 = m(args_float4,2)
+        nargs_int4   = m(args_int4,3)
+
+        getattr(compiled_program, kernel_name)(self.queue, (output_width, output_height, output_depth), None, output_buf, nargs_float, nargs_int, nargs_float4, nargs_int4)
         cl.enqueue_read_buffer(self.queue, output_buf, output).wait()
         del output_buf
         return output
