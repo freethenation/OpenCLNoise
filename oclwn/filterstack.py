@@ -93,6 +93,17 @@ class FilterStack(object):
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
         return self.runtime.run(self.__program, "ZeroToOneKernel", 800, 800, 1, args_float, args_int, args_float4, args_int4)
         
+    def gen_image(self):
+        output = self.run()
+        from PIL import Image
+        output.shape = (800,800,4)
+        im = Image.fromarray( (output*255).astype(numpy.ubyte) )
+        return im
+    
+    def save_image(self, path):
+        im = self.gen_image()
+        im.save(path)
+        del im
     
     def get_args_arrays(self):
         args_float = []
