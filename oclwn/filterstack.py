@@ -37,15 +37,18 @@ class FilterRuntime(object):
         def m(x,y):
             if not x:
                 if y in (2,3):
-                    x = (0,0,0,0)
+                    x = [0,0,0,0]
                 else:
                     x = 0
-            if x in (0,2):
+            if y in (0,2):
                 typ = numpy.float32
             else:
                 typ = numpy.int32
+            if y in (2,3): x = list(x)
 
-            return cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=numpy.array(x, dtype=typ))
+            arr = numpy.array(x, dtype=typ)
+
+            return cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=arr)
         
         nargs_float  = m(args_float,0)
         nargs_int    = m(args_int,1)
@@ -140,7 +143,7 @@ class FilterStack(object):
             for k,v in filter.__class__.__dict__.iteritems():
                 if isinstance(v,FilterArgument):
                     args.append(( v.index, v.type, getattr(filter,k) ))
-            
+                                
             # Sort args list so they're in the right order for insertion
             args.sort()
             

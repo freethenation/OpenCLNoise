@@ -33,10 +33,12 @@ def filter_argument(argument_type, argument_index):
 def float4(value):
     ret = tuple(value)
     if len(value) != 4: raise ValueError()
+    return ret
     
 def int4(value):
     ret = tuple(value)
     if len(value) != 4: raise ValueError()
+    return ret
 
 class BaseFilter(object):
     _filename = None

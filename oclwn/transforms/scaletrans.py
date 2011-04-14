@@ -2,10 +2,10 @@ from basefilter import *
 
 class ScaleTrans(BaseFilter):
     _filename = "scaletrans.cl"
-    def __init__(self):
-        BaseFilter.__init__(self)
-        self._scale = (0.0,0.0,0.0,1.0)
-        self._translate = (1.0,1.0,1.0,1.0)
+    def __init__(self,scale=(1.0,1.0,1.0,1.0),translate=(0.0,0.0,0.0,0.0)):
+        super(type(self),self).__init__()
+        self._scale = scale
+        self._translate = translate
     
     def get_name(self):
         return "scaletrans"
