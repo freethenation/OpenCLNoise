@@ -7,6 +7,14 @@ import time
 import math
 import sys
 
+# Types to use
+VALUE_TYPE = numpy.ubyte
+INDEX_TYPE = numpy.uint64
+
+# Params for the random function
+MEAN = 0
+STD_DEV = 1
+
 # Margin of error to use when comparing results to cpu calculations
 FLOATING_POINT_MARGIN_OF_ERROR = 0.001
 
@@ -48,7 +56,7 @@ parser.add_option("-d", "--device", # Which device to use?
     action="store", type=int, dest="device", default=None,
     help="which compute device to use (starts at 0)")
 parser.add_option("-l", "--length",
-    default=1024, type=int, dest="length",
+    default=2**16+1, type=int, dest="length",
     help="length of array (default: %default)")
 parser.add_option("-n", "--no-cpu",
     default=True, action="store_false", dest="allowcpucompute",
@@ -78,10 +86,12 @@ print device.get_info(cl.device_info.LOCAL_MEM_SIZE)
 # LAB-SPECIFIC CODE AFTER THIS
 
 # Build array to sum
-print "Creating array {0} units long...".format(options.length),
+#print "Using Gaussian distribution with mean of %.2f and S.D. of %.2f" % (MEAN,STD_DEV)
+print "Generating array:",
 sys.stdout.flush()
-array = numpy.arange(0,options.length)
-print "done."
+array = numpy.arange(0,options.length).astype(VALUE_TYPE)
+#array = numpy.random.normal(loc=MEAN, scale=STD_DEV, size=(options.length,)).astype(VALUE_TYPE)
+print array.shape[0], 'elements.'
 
 #~ # Calculate optimal tile size -- largest power of two less than sqrt of max work group size
 #~ maxwgs = device.get_info(cl.device_info.MAX_WORK_GROUP_SIZE)
@@ -107,7 +117,8 @@ print "done."
 # Set up OpenCL
 context = cl.Context([device],None,None) # Create a context
 kernel = '''
-__kernel void sumreduce(__global float *arr, const uint stride) {
+#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+__kernel void sumreduce(__global uchar *arr, const ulong stride) {
     ulong idx = get_global_id(0) * stride;
     if(idx > get_global_size(0) || idx + stride/2 > get_global_size(0))
 	return;
@@ -120,15 +131,16 @@ queue = cl.CommandQueue(context)
 
 # Prepare sum buffer
 t = time.time() # Start timing the GL code
-buf = cl.Buffer(context, cl.mem_flags.USE_HOST_PTR, hostbuf=array.astype(numpy.float32))
+buf = cl.Buffer(context, cl.mem_flags.USE_HOST_PTR, hostbuf=array)
 
 # Do compute -- loop over all possible "stride" values, powers of two starting at 2 and going to width/2
 for i in xrange(1,int(math.log(options.length)/math.log(2))+1):
 	stride = 2 ** i
-	worker.sumreduce(queue, (options.length,), None, buf, numpy.int32(stride)).wait()	
+	#print "Doing calculation for stride 2**%d: %d" % (i,stride)
+	worker.sumreduce(queue, (options.length,), None, buf, INDEX_TYPE(stride)).wait()	
 
 # Allocate output "array" -- only need first cell
-output = numpy.array((1,),dtype=numpy.float32)
+output = numpy.array((1,),dtype=VALUE_TYPE)
 
 # Read output buffer back to host -- block here
 cl.enqueue_read_buffer(queue, buf, output).wait()
