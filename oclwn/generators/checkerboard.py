@@ -2,10 +2,10 @@ from basefilter import *
 
 class CheckerBoard(BaseFilter):
     _filename = "checkerboard.cl"
-    def __init__(self):
+    def __init__(self, black_color=(0.0,0.0,0.0,1.0), white_color=(1.0,1.0,1.0,1.0)):
         BaseFilter.__init__(self)
-        self._black_color = (0.0,0.0,0.0,1.0)
-        self._white_color = (1.0,1.0,1.0,1.0)
+        self._black_color = black_color
+        self._white_color = white_color
     
     def get_name(self):
         return "checkerboard"

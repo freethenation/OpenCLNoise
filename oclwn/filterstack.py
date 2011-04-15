@@ -49,7 +49,7 @@ class FilterRuntime(object):
             arr = numpy.array(x, dtype=typ)
 
             return cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=arr)
-        
+        #print(args_float, args_int, args_float4, args_int4)
         nargs_float  = m(args_float,0)
         nargs_int    = m(args_int,1)
         nargs_float4 = m(args_float4,2)
