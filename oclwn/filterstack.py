@@ -101,17 +101,35 @@ class FilterStack(object):
         return self._cached_sourcecode == None
         
     def append(self,filter):
+        self._mark_dirty()
         filter.on_code_dirty += self._mark_dirty
         self._list.append(filter)
-        self._mark_dirty()
         
     def pop(self):
+        self._mark_dirty()
         x = self._list.pop()
         x.on_code_dirty -= self._mark_dirty
+        
+    def insert(self, index, value):
         self._mark_dirty()
+        value.on_code_dirty += self._mark_dirty
+        self._list.insert(index, value)
         
     push = append
     add = append
+    def __setitem__(self, key,value): 
+        self._mark_dirty()
+        x = self._list[key]
+        x.on_code_dirty -= self._mark_dirty
+        value.on_code_dirty += self._mark_dirty
+        self._list[key] = value        
+    def __delitem__(self, key):
+        self._mark_dirty()
+        x = self._list[key]
+        x.on_code_dirty -= self._mark_dirty
+        return self._list.__delitem__[key]
+    def __getitem__(self, key): return self._list[key]
+    def __iter__(self): return self._list.__iter__()
     
     def run(self, width=None, height=None, depth=None):
         if not width: width = self.width
