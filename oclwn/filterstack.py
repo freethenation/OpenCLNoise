@@ -6,15 +6,21 @@ from event import Event
 import numpy
 
 class FilterRuntime(object):
-    def __init__(self):
+    def __init__(self,device=None):
         self.on_code_dirty = Event()
-        self._device = None
+
         self.__context = None
         self.__queue = None
-        devices = self.get_devices()
-        if(len(devices) > 0): 
-            log.warn("Selecting default OpenCL device '{0}'. Use get_devices() to get a full list of available devices.".format(devices[0].name))
+
+        self._device = None
+        if isinstance(device,int):
+            self.device = self.get_devices()[device]
+        elif not device: 
+            devices = self.get_devices()
             self.device = devices[0]
+            log.warn("Selecting default OpenCL device '{0}'. Use get_devices() to get a full list of available devices.".format(self.device.name))
+        else:
+            self.device = device
     
     def get_devices(self):
         platforms = cl.get_platforms()
@@ -138,12 +144,19 @@ class FilterStack(object):
         if self.is_dirty or not self.__program:
             self.__program = self.runtime.compile(self.generate_code())
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
-        return self.runtime.run(self.__program, "ZeroToOneKernel", width, height, depth, args_float, args_int, args_float4, args_int4)
+        stime = time.time()
+        ret = self.runtime.run(self.__program, "ZeroToOneKernel", width, height, depth, args_float, args_int, args_float4, args_int4)
+        self.__last_run_time = time.time() - stime
+        return ret
+        
+    @property
+    def last_run_time(self):
+        return self.__last_run_time
         
     def gen_image(self, width=None, height=None):
         output = self.run(width, height, 1)
         from PIL import Image
-        output.shape = (width, height,4)
+        output.shape = (height, width, 4)
         im = Image.fromarray( (output*255).astype(numpy.ubyte) )
         return im
     
