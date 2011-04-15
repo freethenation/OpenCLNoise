@@ -6,16 +6,16 @@ from generators.clear import Clear
 from transforms.scaletrans import ScaleTrans
 from selectors.select import Select
 from generators.worley import Worley
-from modifiers.lut import Lut
+#from modifiers.lut import Lut
+from combiners.blend import Blend
 #filter 1
-clear = Clear()
-stack.push(clear)
-scale = ScaleTrans((10.0,10.0,10.0,10.0))
-stack.push(scale)
-worley = Worley()
-stack.push(worley)
-lut = Lut()
-stack.push(lut)
+stack.push(Clear())
+stack.push(ScaleTrans((10.0,10.0,10.0,10.0)))
+stack.push(CheckerBoard((0.0,1,0.0,0.5)))
+stack.push(Clear())
+stack.push(ScaleTrans((10.0,10.0,10.0,10.0)))
+stack.push(Worley())
+stack.push(Blend())
 
 #check = CheckerBoard()
 #stack.push(check)
