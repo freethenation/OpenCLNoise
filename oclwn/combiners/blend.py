@@ -1,12 +1,4 @@
 from basefilter import *
+from os import path
 
-class Over(BaseFilter):
-    _filename = "over.cl"
-    def __init__(self):
-        BaseFilter.__init__(self)
-    
-    def get_name(self):
-        return "over"
-    
-    def get_number_of_inputs(self):
-        return 2
+Over = SimpleFilterFactory("over", path.join("combiners","over.cl"), 2)

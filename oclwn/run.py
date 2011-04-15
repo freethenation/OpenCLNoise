@@ -7,7 +7,7 @@ from transforms.scaletrans import ScaleTrans
 from selectors.select import Select
 from generators.worley import Worley
 #from modifiers.lut import Lut
-from combiners.blend import Blend
+from combiners.blend import Over
 #filter 1
 stack.push(Clear())
 stack.push(ScaleTrans((10.0,10.0,10.0,10.0)))
@@ -15,7 +15,7 @@ stack.push(CheckerBoard((0.0,1,0.0,0.5)))
 stack.push(Clear())
 stack.push(ScaleTrans((10.0,10.0,10.0,10.0)))
 stack.push(Worley())
-stack.push(Blend())
+stack.push(Over())
 
 #check = CheckerBoard()
 #stack.push(check)
