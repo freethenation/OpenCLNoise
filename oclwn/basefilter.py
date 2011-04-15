@@ -1,4 +1,5 @@
 import inspect
+import string
 import os
 from event import Event
 
@@ -57,3 +58,9 @@ class BaseFilter(object):
             with open(path) as file:
                 return file.read()
         else: raise NotYetImplemented()
+        
+    def __repr__(self):
+        try:
+            return string.capitalize(self.get_name())
+        except NotYetImplemented:
+            return super(type(self),self).__repr__()

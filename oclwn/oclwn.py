@@ -1,11 +1,6 @@
 #!/usr/bin/python
-import pyopencl as cl
+from filterstack import *
 import optparse
-import random
-import struct
-import numpy
-import time
-import math
 import sys
 import os
 
@@ -26,21 +21,6 @@ def askLongOptions(prompt,options):
             continue
         return options[x]
 
-# Used to round the global work size up to a tile boundary
-# e.g. roundUpToIncrements(30,16) = 32
-def roundUpToIncrements(inp,inc):
-    if inp % inc == 0: return inp
-    return inc * (int(inp/inc) + 1)
-
-# Find a list of platforms on the machine, then return a list of the first platform's devices
-def getDevices():
-    platforms = cl.get_platforms()
-    assert len(platforms) >= 1, "No CL platforms found."
-    if len(platforms) > 1:
-	print "Warning: we have {0} platforms. Selecting the first (zeroth) one.".format(len(platforms))
-    devices = platforms[0].get_devices()
-    return devices
-
 # Handle command line options
 parser = optparse.OptionParser()
 parser.add_option("-d", "--device", # Which device to use?
@@ -52,92 +32,59 @@ parser.add_option("-W", "--width",
 parser.add_option("-H", "--height",
     default=800, type=int, dest="height",
     help="height of image (default: %default)")
-#~ parser.add_option("-n", "--no-cpu",
-    #~ default=True, action="store_false", dest="allowcpucompute",
-    #~ help="prevent CPU computation")
+parser.add_option("-c", "--code",
+    action="store", dest="savecode",
+    help="save the generated kernel to this file")
+parser.add_option("-s", "--scale",
+    default=10, type=int, dest="scale",
+    help="range from -scale/2 to scale/2 (default: %default)")
 (options, args) = parser.parse_args()
-#height = options.height
 
 # Select a device
-devices = getDevices()
-device = None
-if options.device:
-    if options.device < 0 or options.device >= len(devices):
-	print "Invalid device selection: {0}.".format(options.device)
-    else:
-	device = devices[options.device]
-	print "Selecting device {0}: {1}".format(options.device,device)
-if len(devices) == 1:
-    print "Selecting the first and only device."
-    device = devices[0]
-if not device:
-    device = askLongOptions("Select a device",devices)
+filter_runtime = FilterRuntime()
+devices = filter_runtime.get_devices()
+if len(devices) == 0:
+    raise Exception("No OpenCL devices found.")
+elif options.device:
+    filter_runtime.device = devices[options.device]
+elif len(devices) >= 1: 
+    filter_runtime.device = askLongOptions("Which compute device to use",devices)
 
-# Calculate optimal tile size -- largest power of two less than sqrt of max work group size
-maxwgs = device.get_info(cl.device_info.MAX_WORK_GROUP_SIZE)
-print "This device supports up to {0} threads per work group.".format(maxwgs)
-
-# Create input array
+# Define input parameters
 width = options.width
 height = options.height
-depth = 1
-step = 50.0
+scale = options.scale
 
-# Global work size - number of threads to run in total
-#global_work_size = roundUpToIncrements(height,tile_size)
+# build filter stack
+fs = FilterStack(filter_runtime)
 
-# Set up OpenCL
-context = cl.Context([device],None,None) # Create a context
-queue = cl.CommandQueue(context)
+# Push clear and scale-trans filters
+from generators.clear import Clear
+from transforms.scaletrans import ScaleTrans
+clear = Clear()
+scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
+fs.push(clear)
+fs.push(scale)
 
-# Build filter list
-filterlist = []
+# TESTING FILTERS HERE
+from generators.perlin import Perlin
+fs.push(Perlin())
+# END TESTING FILTERS
 
-#from transforms.scaletrans import FilterScaleTrans
-from generators.worley import FilterWorley
-from genericfilter import GenericFilter
-#filterlist.append( FilterScaleTrans(scale=(10.0,10.0,1), translate=(-5,-5,0) ))
-filterlist.append( FilterWorley(function='F2-F1',distance='euclidian') )
-#filterlist.append( GenericFilter('checkerboard.cl','v = filter_checkerboard(v);') )
-
-# Print the filters
 print "Filters:"
-for f in filterlist:
-    print '  ',f
+for f in fs:
+    print "\t%s" % (f,)
 
-kernel = ''
-with open('utility.cl','r') as inp: kernel += inp.read() + '\n'
-for f in filterlist: kernel += f.build_source() + '\n'
-with open('kernel.cl','r') as inp: kernel += inp.read().replace('<< FILTERS HERE >>','\n'.join([f.build_invocation_string() for f in filterlist])) + '\n'
+# Save code to file
+if options.savecode:
+    print "Saving kernel code to %s." % (options.savecode,)
+    with open(options.savecode,'w') as out:
+        out.write(fs.generate_code())
 
-# Build a Program object -- kernel is compiled here, too. Can be cached for more responsiveness.
-t = time.time()
-print "Building...",
-sys.stdout.flush()
-worker = cl.Program(context, kernel).build()
-print "{0:.2f}ms".format((time.time() - t) * 1000)
+# Run!
+imagename = len(args) and args[0] or 'image.png'
+print "Saving output to %dx%d image '%s'" % (width,height,imagename)
+fs.save_image(imagename,width=width,height=height)
 
-t = time.time() # Start timing the GL code
-# Allocate space for output buffer
-output = numpy.zeros((width*height*depth,4),numpy.float32)
-output_buf = cl.Buffer(context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
-
-seed = 0
-
-# Start compute
-worker.ZeroToOneKernel(queue, (width,height,depth), None, output_buf, numpy.float32(seed))
-
-# Read output buffer back to host 
-cl.enqueue_read_buffer(queue, output_buf, output).wait()
-
-# Compute the GPU time
-gputime = time.time() - t
-print "gpu time: {0:8.2f}ms".format(gputime * 1000)
-
-# Write image using PIL
-from PIL import Image
-output.shape = (height,width,4)
-im = Image.fromarray( (output*255).astype(numpy.ubyte) )
-fn = '{0}.png'.format(os.environ.get('USER','unknown'))
-im.save(fn)
-print "Saved image to {0}".format(fn)
+# Time
+print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)

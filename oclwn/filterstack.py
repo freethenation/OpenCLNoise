@@ -18,7 +18,6 @@ class FilterRuntime(object):
         elif not device: 
             devices = self.get_devices()
             self.device = devices[0]
-            log.warn("Selecting default OpenCL device '{0}'. Use get_devices() to get a full list of available devices.".format(self.device.name))
         else:
             self.device = device
     
@@ -72,6 +71,7 @@ class FilterRuntime(object):
     @device.setter
     def device(self, device):
         if self._device == device: return
+        log.warn("Using OpenCL device '{0}'.".format(device.name))
         old = self._device
         del self.__context
         del self.__queue

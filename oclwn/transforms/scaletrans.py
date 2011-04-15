@@ -28,3 +28,6 @@ class ScaleTrans(BaseFilter):
         def fset(self, value):
             self._translate = float4(value)
         return fget, fset, None
+
+    def __repr__(self):
+        return "Scale: s=(%.2f,%.2f,%.2f), t=(%.2f,%.2f,%.2f)" % (self.scale[0],self.scale[1],self.scale[2],self.translate[0],self.translate[1],self.translate[2])
