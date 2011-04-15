@@ -1,3 +1,3 @@
 from worley import Worley
-from checkerboard import Worley
-from clear import Worley
+from checkerboard import CheckerBoard
+from clear import Clear
