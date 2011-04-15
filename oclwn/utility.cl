@@ -19,4 +19,4 @@ uint hash(uint i, uint j, uint k) {
 #define rng(last) ((1103515245 * last + 12345) % 0x100000000)
 
 // interpolation
-#define lerp(a,b,x) (a-a*x+b*x)
+#define lerp(a,b,x) (a*(1-x)+b*x)
