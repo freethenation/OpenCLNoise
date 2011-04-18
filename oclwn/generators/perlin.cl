@@ -1,9 +1,9 @@
 //#pragma OPENCL EXTENSION cl_amd_printf : enable
 
 float InterpolatedNoise(float4 finput) {
-    int4 iinput = convert_int4(finput);
     float4 frac,junk;
     frac = modf(finput,&junk);
+    int4 iinput = convert_int4(junk);
     
     //printf("%f,%f,%f : %d,%d,%d , %f,%f,%f\n",finput.x,finput.y,finput.z,iinput.x,iinput.y,iinput.z,frac.x,frac.y,frac.z);
     
@@ -40,9 +40,9 @@ PointColor /*id*/perlin(PointColor input, float persistence, int maxdepth, int s
 //    printf("%d,%f,%f,%f\n",get_global_id(0),input.point.x,input.point.y,input.point.z);
     
     for(int i=0; i < maxdepth; ++i) {
-	frequency *= 2;
-	amplitude *= persistence;
-	total += InterpolatedNoise(input.point*frequency) * amplitude;
+        frequency *= 2;
+        amplitude *= persistence;
+        total += InterpolatedNoise(input.point*frequency) * amplitude;
     }
     
     input.color.xyz = total;
