@@ -1,4 +1,4 @@
-PointColor /*id*/blend(PointColor input2, PointColor input1) {
+PointColor /*id*/over(PointColor input2, PointColor input1) {
 	//ColorR = ColorS + (1-AlphaS)*ColorD
 	//AlphaR = AlphaS + (1-AlphaS)*AlphaD
 	float alpha1 = input1.color.w;

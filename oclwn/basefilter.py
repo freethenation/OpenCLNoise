@@ -41,6 +41,20 @@ def int4(value):
     if len(value) != 4: raise ValueError()
     return ret
 
+def SimpleFilterFactory(filter_name, file_name, num_inputs):
+    class SimpleFilter(BaseFilter):
+        _filename = file_name
+        def __init__(self):
+            BaseFilter.__init__(self)
+        
+        def get_name(self):
+            return filter_name
+        
+        def get_number_of_inputs(self):
+            return num_inputs
+    return SimpleFilter
+    
+
 class BaseFilter(object):
     _filename = None
     def __init__(self):
