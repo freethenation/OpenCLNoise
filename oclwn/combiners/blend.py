@@ -29,7 +29,7 @@ class BlendMode:
 
 
 #def Property(func): return property(**func())
-class Worley(BaseFilter):
+class Blend(BaseFilter):
     _filename = 'blend.cl'
     
     def __init__(self,mode=BlendMode.NORMAL):
@@ -50,7 +50,7 @@ class Worley(BaseFilter):
             self.on_code_dirty(self)
     
     def generate_code(self):
-        code = '#define /*id*/CHANNEL_BLEND_FUNC ChannelBlend_{1}\n'.format(self.__mode)
+        code = '#define /*id*/CHANNEL_BLEND_FUNC ChannelBlend_{0}\n'.format(self.__mode)
         code += super(type(self),self).generate_code()
         return code
         
@@ -58,4 +58,4 @@ class Worley(BaseFilter):
         return 'blend'
         
     def __repr__(self):
-        return "Worley: noise f = {0}; distance f = {1}".format(self.function,self.distance)
+        return "Blend: mode = {0};".format(self.__mode)
