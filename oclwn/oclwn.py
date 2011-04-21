@@ -69,11 +69,11 @@ fs.push(scale)
 # TESTING FILTERS HERE
 from generators.checkerboard import CheckerBoard
 from combiners.blend import Blend
-fs.push(CheckerBoard(black_color=(0.0,0.0,1.0,0.5)))
+fs.push(CheckerBoard(black_color=(0.0,0.0,1.0,1.0), white_color=(1.0,1.0,1.0,1.0)))
 fs.push(clear)
 fs.push(scale)
 fs.push(ScaleTrans(translate=(.5,.5,0,0)))
-fs.push(CheckerBoard(black_color=(1.0,0.0,0.0,0.5)))
+fs.push(CheckerBoard(black_color=(1.0,0.0,0.0,0.5), white_color=(1.0,1.0,1.0,0.5)))
 fs.push(Blend())
 # END TESTING FILTERS
 

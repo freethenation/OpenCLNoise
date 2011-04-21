@@ -34,7 +34,7 @@
 	#define /*id*/CHANNEL_BLEND_FUNC = ChannelBlend_Normal
 #endif
 
-PointColor /*id*/blend(PointColor input2, PointColor input1) {
+PointColor /*id*/blend(PointColor input1, PointColor input2) {
 	//Get Alphas
 	float alpha1 = input1.color.w;
 	float alpha2 = input2.color.w;

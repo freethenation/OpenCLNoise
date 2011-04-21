@@ -28,7 +28,6 @@ class BlendMode:
     PHOENIX='Phoenix'
 
 
-#def Property(func): return property(**func())
 class Blend(BaseFilter):
     _filename = 'blend.cl'
     
