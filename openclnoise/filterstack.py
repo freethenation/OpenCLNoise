@@ -252,7 +252,7 @@ class FilterStack(object):
                 raise Exception("Some items left on the stack.")
                 
             self._cached_sourcecode += '''
-__kernel void ZeroToOneKernel(__global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
+__kernel void ZeroToOneKernel(const int4 totalChunks, const int4 currentChunk, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
     uint idX = get_global_id(0);
     uint idY = get_global_id(1);
     uint idZ = get_global_id(2);
@@ -264,7 +264,7 @@ __kernel void ZeroToOneKernel(__global float4 *output, __global float *args_floa
 '''
             
             self._cached_sourcecode += "\n    PointColor "+', '.join(['o{0}'.format(i) for i in xrange(max_stack_size+1)])+';\n'
-            self._cached_sourcecode += '\n'.join(['    '+str(k) for k in kernel_main]) + '\n\n';
+            self._cached_sourcecode += ('\n'.join(['    '+str(k) for k in kernel_main]) + '\n\n').replace('clear()','clear(totalChunks,currentChunk)');
             
             self._cached_sourcecode += '    output[arrIdx] = o0.color;\n}'
             
