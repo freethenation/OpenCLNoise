@@ -1,4 +1,4 @@
-from basefilter import FilterArgument,ArgumentTypes
+from basefilter import FilterArgument, ArgumentTypes, BaseFilter
 import time
 import logging as log
 import pyopencl as cl
@@ -107,19 +107,37 @@ class FilterStack(object):
         return self._cached_sourcecode == None
         
     def append(self,filter):
-        self._mark_dirty()
-        filter.on_code_dirty += self._mark_dirty
-        self._list.append(filter)
+		try:
+			for f in filter:
+				if not isinstance(f, BaseFilter): raise Exception()
+			for f in filter:
+				self._list.append(f)
+				f.on_code_dirty += self._mark_dirty
+		except:
+			if not isinstance(filter, BaseFilter): 
+				raise Exception("Cannot add filter which does not inherit from BaseFilter")
+			self._list.append(filter)
+			filter.on_code_dirty += self._mark_dirty
+		self._mark_dirty()
         
     def pop(self):
         self._mark_dirty()
         x = self._list.pop()
         x.on_code_dirty -= self._mark_dirty
         
-    def insert(self, index, value):
-        self._mark_dirty()
-        value.on_code_dirty += self._mark_dirty
-        self._list.insert(index, value)
+    def insert(self, index, filter):
+		try:
+			for f in filter:
+				if not isinstance(f, BaseFilter): raise Exception()
+			for i,f in enumerate(filter):
+				self._list.insert(index+i, f)
+				f.on_code_dirty += self._mark_dirty
+		except:
+			if not isinstance(filter, BaseFilter): 
+				raise Exception("Cannot add filter which does not inherit from BaseFilter")
+			self._list.insert(index, filter)
+			filter.on_code_dirty += self._mark_dirty
+		self._mark_dirty()
         
     push = append
     add = append
