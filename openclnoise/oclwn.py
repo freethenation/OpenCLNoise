@@ -45,10 +45,12 @@ filter_runtime = FilterRuntime()
 devices = filter_runtime.get_devices()
 if len(devices) == 0:
     raise Exception("No OpenCL devices found.")
-elif options.device:
+elif options.device is not None:
     filter_runtime.device = devices[options.device]
 elif len(devices) >= 1: 
     filter_runtime.device = askLongOptions("Which compute device to use",devices)
+else:
+    filter_runtime.device = devices[0]
 
 # Define input parameters
 width = options.width
@@ -59,16 +61,16 @@ scale = options.scale
 fs = FilterStack(filter_runtime)
 
 # Push clear and scale-trans filters
-from generators.clear import Clear
-from transforms.scaletrans import ScaleTrans
+from clear import Clear
+from scaletrans import ScaleTrans
 clear = Clear()
 scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
 fs.push(clear)
 fs.push(scale)
 
 # TESTING FILTERS HERE
-from generators.checkerboard import CheckerBoard
-from combiners.blend import Blend, BlendMode
+from checkerboard import CheckerBoard
+from blend import Blend, BlendMode
 fs.push(CheckerBoard(black_color=(0.0,0.0,1.0,1.0), white_color=(1.0,1.0,1.0,1.0)))
 fs.push(clear)
 fs.push(scale)

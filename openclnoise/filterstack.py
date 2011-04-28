@@ -2,8 +2,10 @@ from basefilter import FilterArgument, ArgumentTypes, BaseFilter
 import time
 import logging as log
 import pyopencl as cl
+from pyopencl.array import vec
 from event import Event
 import numpy
+import math
 
 class FilterRuntime(object):
     def __init__(self,device=None):
@@ -35,9 +37,6 @@ class FilterRuntime(object):
         return cl.Program(self.context, code).build()
 
     def run(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
-        output = numpy.zeros((output_width*output_height*output_depth,4),numpy.float32)
-        output_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=output)
-        
         # Make a buffer out of x. y is type of buffer: 0 - float, 1 - int, 2 - float4, 3 - walrus; returns buffer of 1 element if array is empty
         def m(x,y):
             if not x:
@@ -54,16 +53,45 @@ class FilterRuntime(object):
             arr = numpy.array(x, dtype=typ)
 
             return cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=arr)
-        #print(args_float, args_int, args_float4, args_int4)
-        nargs_float  = m(args_float,0)
-        nargs_int    = m(args_int,1)
-        nargs_float4 = m(args_float4,2)
-        nargs_int4   = m(args_int4,3)
 
-        getattr(compiled_program, kernel_name)(self.queue, (output_width, output_height, output_depth), None, output_buf, nargs_float, nargs_int, nargs_float4, nargs_int4)
-        cl.enqueue_read_buffer(self.queue, output_buf, output).wait()
+        # Handle arguments
+        nargs_float  = m(args_float,  0)
+        nargs_int    = m(args_int,    1)
+        nargs_float4 = m(args_float4, 2)
+        nargs_int4   = m(args_int4,   3)
+
+        # Determine total number of chunks
+        chunk_width = min(512,output_width)
+        chunk_height = min(512,output_height)
+        chunk_depth = min(16,output_depth)
+        total_chunks = (int(math.ceil(output_width/float(chunk_width))),int(math.ceil(output_height/float(chunk_height))),int(math.ceil(output_depth/float(chunk_depth))))
+        print total_chunks
+        
+        # Allocate final output array, per-chunk array, and output buffer
+        final_output = numpy.empty((output_width*output_height*output_depth,4),numpy.float32)
+        chunk_output = numpy.empty((chunk_width*chunk_height*chunk_depth,4),numpy.float32)
+        output_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=chunk_output)
+
+        # Get kernel and run
+        kernel = getattr(compiled_program, kernel_name)
+        for x in xrange(total_chunks[0]):
+            for y in xrange(total_chunks[1]):
+                for z in xrange(total_chunks[2]):
+                    current_chunk = (x,y,z,0)
+
+                    # Run and read from GPU
+                    kernel(self.queue, (chunk_width, chunk_height, chunk_depth), None, 
+                           vec.make_int4(*total_chunks), vec.make_int4(*current_chunk), 
+                           output_buf, 
+                           nargs_float, nargs_int, nargs_float4, nargs_int4)
+                    cl.enqueue_read_buffer(self.queue, output_buf, chunk_output).wait()
+                    
+                    # Add chunk output to final output
+                    final_output = chunk_output
+                    
         del output_buf
-        return output
+        del chunk_output
+        return final_output
         
     @property
     def device(self):
@@ -270,7 +298,7 @@ class FilterStack(object):
                 raise Exception("Some items left on the stack.")
                 
             self._cached_sourcecode += '''
-__kernel void ZeroToOneKernel(const int4 totalChunks, const int4 currentChunk, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
+__kernel void ZeroToOneKernel(int4 totalChunks, int4 currentChunk, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
     uint idX = get_global_id(0);
     uint idY = get_global_id(1);
     uint idZ = get_global_id(2);
