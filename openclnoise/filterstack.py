@@ -86,7 +86,6 @@ class FilterRuntime(object):
     @property
     def queue(self): return self.__queue
     
-        
 class FilterStack(object):
     def __init__(self, filter_runtime=None):
         self._list = []
@@ -107,18 +106,18 @@ class FilterStack(object):
         return self._cached_sourcecode == None
         
     def append(self,filter):
-		try:
-			for f in filter:
-				if not isinstance(f, BaseFilter): raise Exception()
-			for f in filter:
-				self._list.append(f)
-				f.on_code_dirty += self._mark_dirty
-		except:
-			if not isinstance(filter, BaseFilter): 
-				raise Exception("Cannot add filter which does not inherit from BaseFilter")
-			self._list.append(filter)
-			filter.on_code_dirty += self._mark_dirty
-		self._mark_dirty()
+        try:
+            for f in filter:
+                if not isinstance(f, BaseFilter): raise Exception()
+            for f in filter:
+                self._list.append(f)
+                f.on_code_dirty += self._mark_dirty
+        except:
+            if not isinstance(filter, BaseFilter): 
+                raise Exception("Cannot add filter which does not inherit from BaseFilter")
+            self._list.append(filter)
+            filter.on_code_dirty += self._mark_dirty
+        self._mark_dirty()
         
     def pop(self):
         self._mark_dirty()
@@ -126,18 +125,18 @@ class FilterStack(object):
         x.on_code_dirty -= self._mark_dirty
         
     def insert(self, index, filter):
-		try:
-			for f in filter:
-				if not isinstance(f, BaseFilter): raise Exception()
-			for i,f in enumerate(filter):
-				self._list.insert(index+i, f)
-				f.on_code_dirty += self._mark_dirty
-		except:
-			if not isinstance(filter, BaseFilter): 
-				raise Exception("Cannot add filter which does not inherit from BaseFilter")
-			self._list.insert(index, filter)
-			filter.on_code_dirty += self._mark_dirty
-		self._mark_dirty()
+        try:
+            for f in filter:
+                if not isinstance(f, BaseFilter): raise Exception()
+            for i,f in enumerate(filter):
+                self._list.insert(index+i, f)
+                f.on_code_dirty += self._mark_dirty
+        except:
+            if not isinstance(filter, BaseFilter): 
+                raise Exception("Cannot add filter which does not inherit from BaseFilter")
+            self._list.insert(index, filter)
+            filter.on_code_dirty += self._mark_dirty
+        self._mark_dirty()
         
     push = append
     add = append
@@ -154,6 +153,10 @@ class FilterStack(object):
         return self._list.__delitem__[key]
     def __getitem__(self, key): return self._list[key]
     def __iter__(self): return self._list.__iter__()
+    def __repr__(self):
+        ret = "FilterStack("
+        for filter in self: ret += repr(filter) + ", "
+        return ret[:len(ret)-2] + ")"
     
     def run(self, width=None, height=None, depth=None):
         if not width: width = self.width
