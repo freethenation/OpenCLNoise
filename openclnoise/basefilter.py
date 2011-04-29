@@ -74,7 +74,4 @@ class BaseFilter(object):
         else: raise NotYetImplemented()
         
     def __repr__(self):
-        try:
-            return string.capitalize(self.get_name())
-        except NotYetImplemented:
-            return super(type(self),self).__repr__()
+        raise NotYetImplemented()

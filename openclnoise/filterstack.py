@@ -117,7 +117,7 @@ class FilterRuntime(object):
     def queue(self): return self.__queue
     
 class FilterStack(object):
-    def __init__(self, filter_runtime=None):
+    def __init__(self, filters=None, filter_runtime=None):
         self._list = []
         self._mark_dirty()
         self.runtime = filter_runtime
@@ -126,6 +126,7 @@ class FilterStack(object):
         self.height = 800
         self.depth = 1
         if not self.runtime: self.runtime = FilterRuntime()
+        if filters: self.append(filters)
         
     def _mark_dirty(self, *args):
         self._cached_sourcecode = None
@@ -170,6 +171,11 @@ class FilterStack(object):
         
     push = append
     add = append
+    def clear(self):
+        self._mark_dirty()
+        del self._list
+        self._list = []
+        
     def __setitem__(self, key,value): 
         self._mark_dirty()
         x = self._list[key]
@@ -184,9 +190,25 @@ class FilterStack(object):
     def __getitem__(self, key): return self._list[key]
     def __iter__(self): return self._list.__iter__()
     def __repr__(self):
-        ret = "FilterStack("
-        for filter in self: ret += repr(filter) + ", "
-        return ret[:len(ret)-2] + ")"
+        ret = "FilterStack(["
+        ret += ", ".join([repr(f) for f in self]) 
+        return ret + "])"
+        
+    def save(self, file):
+        if isinstance(file,basestring): 
+            f = open(file, "w")
+            f.write(repr(self))
+            f.close()
+        else: file.write(repr(self))
+    
+    def load(self, file):
+        if isinstance(file,basestring):
+            file = open(file, "r")
+            code = file.read()
+            file.close()
+        else: code = file.read()
+        self.clear()
+        self.append(eval(code, __import__("openclnoise").__dict__))
     
     def run(self, width=None, height=None, depth=None):
         if not width: width = self.width

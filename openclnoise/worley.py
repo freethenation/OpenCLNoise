@@ -67,5 +67,5 @@ class Worley(BaseFilter):
         return 'worley'
         
     def __repr__(self):
-        return "Worley: noise f = {0}; distance f = {1}".format(self.function,self.distance)
+        return "Worley(function={0},distance={1},seed={2})".format(self.function,self.distance,self.seed)
     
