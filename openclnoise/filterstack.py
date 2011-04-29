@@ -2,7 +2,10 @@ from basefilter import FilterArgument, ArgumentTypes, BaseFilter
 import time
 import logging as log
 import pyopencl as cl
-from pyopencl.array import vec
+try:
+    from pyopencl.array import vec
+except ImportError:
+    from vec import vec # Our own local copy! :)
 from event import Event
 import numpy
 import math
@@ -65,11 +68,10 @@ class FilterRuntime(object):
         chunk_height = min(512,output_height)
         chunk_depth = min(16,output_depth)
         total_chunks = (int(math.ceil(output_width/float(chunk_width))),int(math.ceil(output_height/float(chunk_height))),int(math.ceil(output_depth/float(chunk_depth))))
-        print total_chunks
         
         # Allocate final output array, per-chunk array, and output buffer
-        final_output = numpy.empty((output_width*output_height*output_depth,4),numpy.float32)
-        chunk_output = numpy.empty((chunk_width*chunk_height*chunk_depth,4),numpy.float32)
+        final_output = numpy.empty((output_width,output_height,output_depth),vec.float4)
+        chunk_output = numpy.empty((chunk_width,chunk_height,chunk_depth),vec.float4)
         output_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=chunk_output)
 
         # Get kernel and run
@@ -86,12 +88,12 @@ class FilterRuntime(object):
                            nargs_float, nargs_int, nargs_float4, nargs_int4)
                     cl.enqueue_read_buffer(self.queue, output_buf, chunk_output).wait()
                     
-                    # Add chunk output to final output
-                    final_output = chunk_output
-                    
-        del output_buf
-        del chunk_output
-        return final_output
+                    return chunk_output
+#                    yield current_chunk[:3], chunk_output
+
+#        del output_buf
+#        del chunk_output
+#        return final_output
         
     @property
     def device(self):
@@ -203,10 +205,12 @@ class FilterStack(object):
         return self.__last_run_time
         
     def gen_image(self, width=None, height=None):
-        output = self.run(width, height, 1)
+        output = self.run(width, height, 1)[:,:,0] # 2-d output
         from PIL import Image
-        output.shape = (height, width, 4)
-        im = Image.fromarray( (output*255).astype(numpy.ubyte) )
+
+        output = numpy.ndarray(shape=(width,height,4),buffer=output.data,dtype=numpy.float32)
+
+        im = Image.fromarray((output*255).astype(numpy.ubyte))
         return im
     
     def save_image(self, path, width=None, height=None):
