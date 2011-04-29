@@ -56,19 +56,19 @@ height = options.height
 scale = options.scale
 
 # build filter stack
-fs = FilterStack(filter_runtime)
+fs = FilterStack(filter_runtime=filter_runtime)
 
 # Push clear and scale-trans filters
-from generators.clear import Clear
-from transforms.scaletrans import ScaleTrans
+from clear import Clear
+from scaletrans import ScaleTrans
 clear = Clear()
 scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
 fs.push(clear)
 fs.push(scale)
 
 # TESTING FILTERS HERE
-from generators.checkerboard import CheckerBoard
-from combiners.blend import Blend, BlendMode
+from checkerboard import CheckerBoard
+from blend import Blend, BlendMode
 fs.push(CheckerBoard(black_color=(0.0,0.0,1.0,1.0), white_color=(1.0,1.0,1.0,1.0)))
 fs.push(clear)
 fs.push(scale)

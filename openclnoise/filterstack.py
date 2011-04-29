@@ -115,7 +115,7 @@ class FilterStack(object):
                 f.on_code_dirty += self._mark_dirty
         except:
             if not isinstance(filter, BaseFilter): 
-                raise Exception("Cannot add filter which does not inherit from BaseFilter")
+                raise Exception("Cannot add filter which does not inherit from BaseFilter: {0} {1}".format(type(filter),filter))
             self._list.append(filter)
             filter.on_code_dirty += self._mark_dirty
         self._mark_dirty()
