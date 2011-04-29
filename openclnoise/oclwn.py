@@ -45,10 +45,12 @@ filter_runtime = FilterRuntime()
 devices = filter_runtime.get_devices()
 if len(devices) == 0:
     raise Exception("No OpenCL devices found.")
-elif options.device:
+elif options.device is not None:
     filter_runtime.device = devices[options.device]
 elif len(devices) >= 1: 
     filter_runtime.device = askLongOptions("Which compute device to use",devices)
+else:
+    filter_runtime.device = devices[0]
 
 # Define input parameters
 width = options.width
