@@ -161,8 +161,8 @@ class FilterStack(object):
     def __iter__(self): return self._list.__iter__()
     def __repr__(self):
         ret = "FilterStack(["
-        for filter in self: ret += repr(filter) + ", "
-        return ret[:len(ret)-2] + "])"
+        ret += ", ".join([repr(f) for f in self]) 
+        return ret + "])"
         
     def save(self, file):
         if isinstance(file,basestring): 

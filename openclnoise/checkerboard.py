@@ -30,4 +30,4 @@ class CheckerBoard(BaseFilter):
         return fget, fset, None
 
     def __repr__(self):
-        return "CheckerBoard( black_color={0}, white_color={1})".format(self.black_color, self.white_color)
+        return "CheckerBoard(black_color={0},white_color={1})".format(self.black_color, self.white_color)
