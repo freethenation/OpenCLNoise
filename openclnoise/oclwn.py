@@ -70,13 +70,15 @@ fs.push(scale)
 
 # TESTING FILTERS HERE
 from checkerboard import CheckerBoard
-from blend import Blend, BlendMode
-fs.push(CheckerBoard(black_color=(0.0,0.0,1.0,1.0), white_color=(1.0,1.0,1.0,1.0)))
-fs.push(clear)
-fs.push(scale)
-fs.push(ScaleTrans(translate=(.5,.5,0,0)))
-fs.push(CheckerBoard(black_color=(1.0,0.0,0.0,1.0), white_color=(1.0,0.0,0.0,0.5)))
-fs.push(Blend(mode=BlendMode.ADD))
+from worley import Worley
+#from blend import Blend, BlendMode
+#fs.push(CheckerBoard())
+fs.push(Worley())
+#~ fs.push(clear)
+#~ fs.push(scale)
+#~ fs.push(ScaleTrans(translate=(.5,.5,0,0)))
+#~ fs.push(CheckerBoard(black_color=(1.0,0.0,0.0,1.0), white_color=(1.0,0.0,0.0,0.5)))
+#~ fs.push(Blend(mode=BlendMode.ADD))
 # END TESTING FILTERS
 
 print "Filters:"
@@ -92,7 +94,7 @@ if options.savecode:
 # Run!
 imagename = len(args) and args[0] or 'image.png'
 print "Saving output to %dx%d image '%s'" % (width,height,imagename)
-fs.save_image(imagename,width=width,height=height)
+fs.save_image(imagename,width,height)
 
 # Time
 print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)

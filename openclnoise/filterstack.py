@@ -2,6 +2,7 @@ from basefilter import FilterArgument, ArgumentTypes, BaseFilter
 import time
 import logging as log
 import pyopencl as cl
+import warnings
 try:
     from pyopencl.array import vec
 except ImportError:
@@ -9,6 +10,26 @@ except ImportError:
 from event import Event
 import numpy
 import math
+
+class JobChunk(object):
+    def __init__(self,data,start_index,job_dimensions):
+        self.data = data
+        self.start_index = start_index
+        assert len(job_dimensions) == 3
+        self.job_dimensions = job_dimensions
+    
+    def __len__(self):
+        return len(self.data)
+        
+    @property
+    def position3D(self):
+        x = self.start_index / self.job_dimensions[2] / self.job_dimensions[1]
+        y = (self.start_index / self.job_dimensions[2]) % self.job_dimensions[1]
+        z = self.start_index % self.job_dimensions[2]
+        return (x,y,z)
+        
+    def __repr__(self):
+        return "chunk starting at {0} (idx {1}) of length {2}".format(self.position3D,self.start_index,len(self))
 
 class FilterRuntime(object):
     def __init__(self,device=None):
@@ -37,9 +58,21 @@ class FilterRuntime(object):
         return devices
         
     def compile(self, code):
-        return cl.Program(self.context, code).build()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            return cl.Program(self.context, code).build()    
 
-    def run(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+    def run_to_memory(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+        final_array = numpy.empty(shape=(output_width*output_height*output_depth),dtype=vec.float4)
+        for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+            final_array[chunk.start_index:chunk.start_index+len(chunk)] = chunk.data
+            del chunk.data
+        
+        final_array.shape = (output_width, output_height, output_depth)
+        return final_array
+        
+    # Run a "job" consisting of one or more "chunks" - generator
+    def run_generator(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
         # Make a buffer out of x. y is type of buffer: 0 - float, 1 - int, 2 - float4, 3 - walrus; returns buffer of 1 element if array is empty
         def m(x,y):
             if not x:
@@ -63,37 +96,39 @@ class FilterRuntime(object):
         nargs_float4 = m(args_float4, 2)
         nargs_int4   = m(args_int4,   3)
 
-        # Determine total number of chunks
-        chunk_width = min(512,output_width)
-        chunk_height = min(512,output_height)
-        chunk_depth = min(16,output_depth)
-        total_chunks = (int(math.ceil(output_width/float(chunk_width))),int(math.ceil(output_height/float(chunk_height))),int(math.ceil(output_depth/float(chunk_depth))))
+        #~ def toWONd(x,y,z,width,height,depth):
+            #~ return z + y * depth + x * depth * height
+
+        #~ def toFREEd(i,width,height,depth):
+            #~ x = i / depth / height
+            #~ y = (i / depth) % height
+            #~ z = i % depth
+            #~ return (x,y,z)
+            
+        # Calculate job length and chunk size
+        job_length = output_width * output_height * output_depth
+        chunk_size = 2048 # fixme
+        num_chunks = int(math.ceil(job_length*1.0 / chunk_size))
         
-        # Allocate final output array, per-chunk array, and output buffer
-        final_output = numpy.empty((output_width,output_height,output_depth),vec.float4)
-        chunk_output = numpy.empty((chunk_width,chunk_height,chunk_depth),vec.float4)
+        # Allocate per-chunk array, and output buffer
+        chunk_output = numpy.empty(chunk_size,vec.float4)
         output_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=chunk_output)
 
         # Get kernel and run
         kernel = getattr(compiled_program, kernel_name)
-        for x in xrange(total_chunks[0]):
-            for y in xrange(total_chunks[1]):
-                for z in xrange(total_chunks[2]):
-                    current_chunk = (x,y,z,0)
+        for chunk_num in xrange(num_chunks):
+            chunk_index = chunk_num*chunk_size
+            my_chunk_size = min(chunk_size, job_length-chunk_index)
+            chunk_output = numpy.empty(my_chunk_size,vec.float4) # Redefine array
 
-                    # Run and read from GPU
-                    kernel(self.queue, (chunk_width, chunk_height, chunk_depth), None, 
-                           vec.make_int4(*total_chunks), vec.make_int4(*current_chunk), 
-                           output_buf, 
-                           nargs_float, nargs_int, nargs_float4, nargs_int4)
-                    cl.enqueue_read_buffer(self.queue, output_buf, chunk_output).wait()
-                    
-                    return chunk_output
-#                    yield current_chunk[:3], chunk_output
-
-#        del output_buf
-#        del chunk_output
-#        return final_output
+            # Run and read from GPU
+            kernel(self.queue, (my_chunk_size,), None, 
+                   numpy.uint64(chunk_index), vec.make_int4(output_width,output_height,output_depth),
+                   output_buf,
+                   nargs_float, nargs_int, nargs_float4, nargs_int4)
+            cl.enqueue_read_buffer(self.queue, output_buf, chunk_output).wait()
+            
+            yield JobChunk(chunk_output,chunk_index,(output_width,output_height,output_depth))
         
     @property
     def device(self):
@@ -218,7 +253,7 @@ class FilterStack(object):
             self.__program = self.runtime.compile(self.generate_code())
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
         stime = time.time()
-        ret = self.runtime.run(self.__program, "ZeroToOneKernel", width, height, depth, args_float, args_int, args_float4, args_int4)
+        ret = self.runtime.run_to_memory(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4)
         self.__last_run_time = time.time() - stime
         return ret
         
@@ -227,16 +262,16 @@ class FilterStack(object):
         return self.__last_run_time
         
     def gen_image(self, width=None, height=None):
-        output = self.run(width, height, 1)[:,:,0] # 2-d output
         from PIL import Image
-
+        output = self.run(width,height,1)[:,:,0]
+        
         output = numpy.ndarray(shape=(width,height,4),buffer=output.data,dtype=numpy.float32)
 
         im = Image.fromarray((output*255).astype(numpy.ubyte))
         return im
     
     def save_image(self, path, width=None, height=None):
-        im = self.gen_image(width, height)
+        im = self.gen_image(width,height)
         im.save(path)
         del im
     
@@ -283,7 +318,7 @@ class FilterStack(object):
 
     def generate_code(self,force=False):
         if not self._cached_sourcecode:
-            self._cached_sourcecode = ''
+            self._cached_sourcecode = '#pragma OPENCL EXTENSION cl_amd_printf : enable\n'
             self._cached_sourcecode += '// Start utility.cl\n'
             with open('utility.cl') as inp: self._cached_sourcecode += inp.read().strip() + '\n'
             self._cached_sourcecode += '// End utility.cl\n'
@@ -326,22 +361,28 @@ class FilterStack(object):
             if len(stack) != 1:
                 raise Exception("Some items left on the stack.")
                 
-            self._cached_sourcecode += '''
-__kernel void ZeroToOneKernel(int4 totalChunks, int4 currentChunk, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
-    uint idX = get_global_id(0);
-    uint idY = get_global_id(1);
-    uint idZ = get_global_id(2);
-    uint width = get_global_size(0);
-    uint height = get_global_size(1);
-    uint depth = get_global_size(2);
-
-    uint arrIdx = idX + idY * width + idZ * width * height;
+            #~ x = i / depth / height
+            #~ y = (i / depth) % height
+            #~ z = i % depth
+            #~ return (x,y,z)
+                
+            self._cached_sourcecode += '''            
+__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
+    ulong thisPoint = get_global_id(0) + startIndex;
+    //printf("%d\\n",thisPoint);
+    float4 point;
+    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x;
+    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y;
+    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z;
+    
+    //printf("%f,%f,%f\\n",point.x,point.y,point.z);
+    
 '''
             
             self._cached_sourcecode += "\n    PointColor "+', '.join(['o{0}'.format(i) for i in xrange(max_stack_size+1)])+';\n'
-            self._cached_sourcecode += ('\n'.join(['    '+str(k) for k in kernel_main]) + '\n\n').replace('clear()','clear(totalChunks,currentChunk)');
+            self._cached_sourcecode += ('\n'.join(['    '+str(k) for k in kernel_main]) + '\n\n').replace('clear()','clear(point)');
             
-            self._cached_sourcecode += '    output[arrIdx] = o0.color;\n}'
+            self._cached_sourcecode += '    output[get_global_id(0)] = o0.color;\n}'
             
         return self._cached_sourcecode
 
