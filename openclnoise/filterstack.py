@@ -70,6 +70,14 @@ class FilterRuntime(object):
         
         final_array.shape = (output_width, output_height, output_depth)
         return final_array
+    
+    def run_to_file(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4, file_name):
+        file = open(file_name, "wb")
+        for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+            file.seek(chunk.start_index)
+            file.write(chunk.data)
+            del chunk.data
+        file.close()
         
     # Run a "job" consisting of one or more "chunks" - generator
     def run_generator(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
@@ -256,6 +264,17 @@ class FilterStack(object):
         ret = self.runtime.run_to_memory(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4)
         self.__last_run_time = time.time() - stime
         return ret
+        
+    def run_to_file(self, file_name, width=None, height=None, depth=None):
+        if not width: width = self.width
+        if not height: height = self.height
+        if not depth: depth = self.depth
+        if self.is_dirty or not self.__program:
+            self.__program = self.runtime.compile(self.generate_code())
+        args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
+        stime = time.time()
+        self.runtime.run_to_file(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4, file_name)
+        self.__last_run_time = time.time() - stime
         
     @property
     def last_run_time(self):

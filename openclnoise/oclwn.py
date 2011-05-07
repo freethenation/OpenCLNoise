@@ -94,7 +94,8 @@ if options.savecode:
 # Run!
 imagename = len(args) and args[0] or 'image.png'
 print "Saving output to %dx%d image '%s'" % (width,height,imagename)
-fs.save_image(imagename,width,height)
+#fs.save_image(imagename,width,height)
+fs.run_to_file(imagename,width,height)
 
 # Time
 print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)
