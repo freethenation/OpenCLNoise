@@ -12,13 +12,11 @@ from basefilter import *
 class Perlin(BaseFilter):
     _filename = 'perlin.cl'
     
-    def __init__(self,seed=0): # function='F1',distance='euclidian',
+    def __init__(self,seed=11,maxdepth=8,persistence=0.75,initial_amplitude=1.0,initial_frequency=1.0): # function='F1',distance='euclidian',
         super(type(self),self).__init__()
-        self._seed = 0
-        self._maxdepth = 32
-        self._persistence = 0.25
-        #~ self.__defines = {}
-        self.seed = seed
+        self._seed = seed
+        self._maxdepth = maxdepth
+        self._persistence = persistence
     
     @filter_argument(ArgumentTypes.FLOAT, 0)
     def persistence():

@@ -2,8 +2,30 @@
 
 float InterpolatedNoise(float4 finput) {
     float4 frac,junk;
+    int4 iinput;
     frac = modf(finput,&junk);
-    int4 iinput = convert_int4(junk);
+    iinput = convert_int4_rtn(finput);
+    //iinput = convert_int4(junk);
+    
+    frac.x = frac.x >= 0 ? frac.x : frac.x + 1;
+    frac.y = frac.y >= 0 ? frac.y : frac.y + 1;
+    frac.z = frac.z >= 0 ? frac.z : frac.z + 1;
+    
+    /*if(iinput.x < 0) iinput.x -= 1;
+    if(iinput.y < 0) iinput.y -= 1;
+    if(iinput.z < 0) iinput.z -= 1;*/
+    
+    //finput = -5.3
+    //frac = -0.3
+    //iinput = -5
+    
+    //iinput = convert_int4_rtn(finput);
+    //frac = finput - convert_float4(convert_int4((finput)));
+    
+    //if(finput.x < 0 || finput.y < 0 || finput.z < 0)
+    //    printf("i = %d,%d,%d   f = %f,%f,%f\n",iinput.x,iinput.y,iinput.z,frac.x,frac.y,frac.z);
+    //~ frac = modf(finput,&junk);
+    //~ int4 iinput = convert_int4(junk);
     
     //printf("%f,%f,%f : %d,%d,%d , %f,%f,%f\n",finput.x,finput.y,finput.z,iinput.x,iinput.y,iinput.z,frac.x,frac.y,frac.z);
     
@@ -11,38 +33,38 @@ float InterpolatedNoise(float4 finput) {
     float i1,i2,i3,i4;
     float j1,j2;
     
-    v1 = rng(hash(iinput.x+0,iinput.y+0,iinput.z+0)) / (float)0x100000000;
-    v2 = rng(hash(iinput.x+1,iinput.y+0,iinput.z+0)) / (float)0x100000000;
-    v3 = rng(hash(iinput.x+0,iinput.y+1,iinput.z+0)) / (float)0x100000000;
-    v4 = rng(hash(iinput.x+1,iinput.y+1,iinput.z+0)) / (float)0x100000000;
-    v5 = rng(hash(iinput.x+0,iinput.y+0,iinput.z+1)) / (float)0x100000000;
-    v6 = rng(hash(iinput.x+1,iinput.y+0,iinput.z+1)) / (float)0x100000000;
-    v7 = rng(hash(iinput.x+0,iinput.y+1,iinput.z+1)) / (float)0x100000000;
-    v8 = rng(hash(iinput.x+1,iinput.y+1,iinput.z+1)) / (float)0x100000000;
+    v1 = good_rng(hash(iinput.x+0,iinput.y+0,iinput.z+0)) / (float)0x100000000;
+    v2 = good_rng(hash(iinput.x+1,iinput.y+0,iinput.z+0)) / (float)0x100000000;
+    v3 = good_rng(hash(iinput.x+0,iinput.y+1,iinput.z+0)) / (float)0x100000000;
+    v4 = good_rng(hash(iinput.x+1,iinput.y+1,iinput.z+0)) / (float)0x100000000;
+    v5 = good_rng(hash(iinput.x+0,iinput.y+0,iinput.z+1)) / (float)0x100000000;
+    v6 = good_rng(hash(iinput.x+1,iinput.y+0,iinput.z+1)) / (float)0x100000000;
+    v7 = good_rng(hash(iinput.x+0,iinput.y+1,iinput.z+1)) / (float)0x100000000;
+    v8 = good_rng(hash(iinput.x+1,iinput.y+1,iinput.z+1)) / (float)0x100000000;
     
-    i1 = lerp(v1,v2,frac.x);
-    i2 = lerp(v3,v4,frac.x);
-    i3 = lerp(v5,v6,frac.x);
-    i4 = lerp(v7,v8,frac.x);
+    //if(get_global_id(0) == 0) 
+    //    printf("%f,%f,%f -> %f,%f,%f AND %d,%d,%d\n",v1,v2,v3,v4,v5,v6);
     
-    j1 = lerp(i1,i2,frac.y);
-    j2 = lerp(i3,i4,frac.y);
+    i1 = INTERPOLATOR(v1,v2,frac.x);
+    i2 = INTERPOLATOR(v3,v4,frac.x);
+    i3 = INTERPOLATOR(v5,v6,frac.x);
+    i4 = INTERPOLATOR(v7,v8,frac.x);
     
-    return lerp(j1,j2,frac.z);
+    j1 = INTERPOLATOR(i1,i2,frac.y);
+    j2 = INTERPOLATOR(i3,i4,frac.y);
+    
+    return INTERPOLATOR(j1,j2,frac.z);
 }
 
 PointColor /*id*/perlin(PointColor input, float persistence, int maxdepth, int seed) {   
     FLOAT_T total = 0;
     uint frequency = 1;
-    float amplitude = 1;
-  
-//    printf("%f\n",input.point.x*100.0);
-//    printf("%d,%f,%f,%f\n",get_global_id(0),input.point.x,input.point.y,input.point.z);
-    
+    float amplitude = 0.25;
+      
     for(int i=0; i < maxdepth; ++i) {
+        total += InterpolatedNoise(input.point*frequency) * amplitude;
         frequency *= 2;
         amplitude *= persistence;
-        total += InterpolatedNoise(input.point*frequency) * amplitude;
     }
     
     input.color.xyz = total;

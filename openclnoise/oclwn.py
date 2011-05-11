@@ -36,7 +36,7 @@ parser.add_option("-c", "--code",
     action="store", dest="savecode",
     help="save the generated kernel to this file")
 parser.add_option("-s", "--scale",
-    default=10, type=int, dest="scale",
+    default=10, type=float, dest="scale",
     help="range from -scale/2 to scale/2 (default: %default)")
 (options, args) = parser.parse_args()
 
@@ -64,16 +64,16 @@ fs = FilterStack(filter_runtime=filter_runtime)
 from clear import Clear
 from scaletrans import ScaleTrans
 clear = Clear()
-scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
+scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
 fs.push(clear)
 fs.push(scale)
 
 # TESTING FILTERS HERE
 from checkerboard import CheckerBoard
-from worley import Worley
+from perlin import Perlin
 #from blend import Blend, BlendMode
 #fs.push(CheckerBoard())
-fs.push(Worley())
+fs.push(Perlin())
 #~ fs.push(clear)
 #~ fs.push(scale)
 #~ fs.push(ScaleTrans(translate=(.5,.5,0,0)))
@@ -94,8 +94,8 @@ if options.savecode:
 # Run!
 imagename = len(args) and args[0] or 'image.png'
 print "Saving output to %dx%d image '%s'" % (width,height,imagename)
-#fs.save_image(imagename,width,height)
-fs.run_to_file(imagename,width,height)
+fs.save_image(imagename,width,height)
+#fs.run_to_file(imagename,width,height)
 
 # Time
 print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)
