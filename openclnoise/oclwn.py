@@ -63,6 +63,7 @@ fs = FilterStack(filter_runtime=filter_runtime)
 # Push clear and scale-trans filters
 from clear import Clear
 from scaletrans import ScaleTrans
+from perlin import Perlin
 clear = Clear()
 scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
 fs.push(clear)
