@@ -63,6 +63,7 @@ fs = FilterStack(filter_runtime=filter_runtime)
 # Push clear and scale-trans filters
 from clear import Clear
 from scaletrans import ScaleTrans
+from perlin import Perlin
 clear = Clear()
 scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
 fs.push(clear)
@@ -73,7 +74,7 @@ from checkerboard import CheckerBoard
 from worley import Worley
 #from blend import Blend, BlendMode
 #fs.push(CheckerBoard())
-fs.push(Worley())
+fs.push(Perlin())
 #~ fs.push(clear)
 #~ fs.push(scale)
 #~ fs.push(ScaleTrans(translate=(.5,.5,0,0)))
@@ -94,8 +95,8 @@ if options.savecode:
 # Run!
 imagename = len(args) and args[0] or 'image.png'
 print "Saving output to %dx%d image '%s'" % (width,height,imagename)
-#fs.save_image(imagename,width,height)
-fs.run_to_file(imagename,width,height)
+fs.save_image(imagename,width,height)
+#fs.run_to_file(imagename,width,height)
 
 # Time
 print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)
