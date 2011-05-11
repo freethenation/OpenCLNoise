@@ -19,7 +19,8 @@ uint hash(uint i, uint j, uint k) {
 #define rng(last) ((1103515245 * last + 12345) % 0x100000000)
 
 // "Good" random number generator
-#define good_rng(x) ((x * (x * x * 15731 + 789221) + 1376312589) % 0x100000000)
+//#define good_rng(x) ((x * (x * x * 15731 + 789221) + 1376312589) % 0x100000000)
+#define good_rng(x) (x)
 
 // interpolation
 #define lerp(a,b,x) (a*(1-x)+b*x)
