@@ -38,6 +38,9 @@ parser.add_option("-c", "--code",
 parser.add_option("-s", "--scale",
     default=10, type=float, dest="scale",
     help="range from -scale/2 to scale/2 (default: %default)")
+parser.add_option("-l", "--load",
+    default=None, type=str, dest="load_path",
+    help="the path specifying location of saved filter stack file")
 (options, args) = parser.parse_args()
 
 # Select a device
@@ -60,27 +63,30 @@ scale = options.scale
 # build filter stack
 fs = FilterStack(filter_runtime=filter_runtime)
 
-# Push clear and scale-trans filters
-from clear import Clear
-from scaletrans import ScaleTrans
-from perlin import Perlin
-clear = Clear()
-scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
-fs.push(clear)
-fs.push(scale)
+if options.load_path:
+    fs.load(options.load_path)
+else:
+    # Push clear and scale-trans filters
+    from clear import Clear
+    from scaletrans import ScaleTrans
+    from perlin import Perlin
+    clear = Clear()
+    scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
+    fs.push(clear)
+    fs.push(scale)
 
-# TESTING FILTERS HERE
-from checkerboard import CheckerBoard
-from perlin import Perlin
-#from blend import Blend, BlendMode
-#fs.push(CheckerBoard())
-fs.push(Perlin())
-#~ fs.push(clear)
-#~ fs.push(scale)
-#~ fs.push(ScaleTrans(translate=(.5,.5,0,0)))
-#~ fs.push(CheckerBoard(black_color=(1.0,0.0,0.0,1.0), white_color=(1.0,0.0,0.0,0.5)))
-#~ fs.push(Blend(mode=BlendMode.ADD))
-# END TESTING FILTERS
+    # TESTING FILTERS HERE
+    from checkerboard import CheckerBoard
+    from perlin import Perlin
+    #from blend import Blend, BlendMode
+    #fs.push(CheckerBoard())
+    fs.push(Perlin())
+    #~ fs.push(clear)
+    #~ fs.push(scale)
+    #~ fs.push(ScaleTrans(translate=(.5,.5,0,0)))
+    #~ fs.push(CheckerBoard(black_color=(1.0,0.0,0.0,1.0), white_color=(1.0,0.0,0.0,0.5)))
+    #~ fs.push(Blend(mode=BlendMode.ADD))
+    # END TESTING FILTERS
 
 print "Filters:"
 for f in fs:

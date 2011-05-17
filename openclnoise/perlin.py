@@ -78,5 +78,5 @@ class Perlin(BaseFilter):
         return 'perlin'
         
     def __repr__(self):
-        return "Perlin"
+        return "Perlin()"
     
