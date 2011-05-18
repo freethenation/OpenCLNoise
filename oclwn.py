@@ -41,6 +41,12 @@ parser.add_option("-s", "--scale",
 parser.add_option("-l", "--load",
     default=None, type=str, dest="load_path",
     help="the path specifying location of saved filter stack file")
+parser.add_option("-f","--file",
+    default=None, type=str, dest="filename",
+    help="write image to this filename")
+parser.add_option("-r","--raw",
+    default=False, action="store_true", dest="raw_mode",
+    help="write raw data (see README for format)")
 (options, args) = parser.parse_args()
 
 # Select a device
@@ -99,10 +105,16 @@ if options.savecode:
         out.write(fs.generate_code())
 
 # Run!
-imagename = len(args) and args[0] or 'image.png'
-print "Saving output to %dx%d image '%s'" % (width,height,imagename)
-fs.save_image(imagename,width,height)
-#fs.run_to_file(imagename,width,height)
+if options.filename:
+    if options.raw_mode: # Raw mode
+        print "Saving output to %dx%d raw file '%s'" % (width,height,options.filename)
+        fs.run_to_file(options.filename,width,height,1)
+    else: # Image mode
+        print "Saving output to %dx%d image '%s'" % (width,height,options.filename)
+        fs.save_image(options.filename,width,height)
+else:
+    print "Running and discarding output of %dx%d data" % (width,height)
+    fs.run_to_discard(width,height,1)
 
 # Time
 print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)
