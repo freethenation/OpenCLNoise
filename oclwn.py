@@ -90,7 +90,7 @@ else:
     #from perlin import Perlin
     #from blend import Blend, BlendMode
     #fs.push(CheckerBoard())
-    fs.push(Perlin())
+    fs.push(Worley(distance='manhattan'))
     #~ fs.push(clear)
     #~ fs.push(scale)
     #~ fs.push(ScaleTrans(translate=(.5,.5,0,0)))

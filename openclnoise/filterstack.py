@@ -78,8 +78,11 @@ class FilterRuntime(object):
         file.write(numpy.uint64(output_width).data)
         file.write(numpy.uint64(output_height).data)
         file.write(numpy.uint64(output_depth).data)
+        for x in xrange(output_width * output_height * output_depth / 8192):
+            file.write('\0'*16*8192)
+        file.seek(0)
         for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
-            file.seek(chunk.start_index+24) # Space for header
+            file.seek(chunk.start_index*16+24) # Space for header # FIXME
             file.write(chunk.data)
             del chunk.data
         file.close()

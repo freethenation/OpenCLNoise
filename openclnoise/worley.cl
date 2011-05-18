@@ -82,6 +82,7 @@ PointColor /*id*/worley(PointColor input, int seed) {
     
     input.color.xyz = /*id*/FUNCTION;
     input.color.w = 1;
+    input.color = clamp(input.color,0.0f,1.0f);	
     
     return input;
 }

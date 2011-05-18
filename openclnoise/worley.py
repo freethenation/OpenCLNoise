@@ -33,10 +33,10 @@ class Worley(BaseFilter):
     @function.setter
     def function(self,value):
         self.__function = value
-        self.__defines['WORLEY_NUMVALUES'] = max([int(m.group(1)) for m in re.finditer(r'F(\d*)',self.function)]) # Calculate how many values we must find
-        self.__defines['WORLEY_FUNCTION'] = self.__function 
-        for i in xrange(self.__defines['WORLEY_NUMVALUES']):
-            self.__defines['WORLEY_FUNCTION'] = self.__defines['WORLEY_FUNCTION'].replace('F{0}'.format(i+1),'F[{0}]'.format(i))
+        self.__defines['NUMVALUES'] = max([int(m.group(1)) for m in re.finditer(r'F(\d*)',self.function)]) # Calculate how many values we must find
+        self.__defines['FUNCTION'] = self.__function 
+        for i in xrange(self.__defines['NUMVALUES']):
+            self.__defines['FUNCTION'] = self.__defines['FUNCTION'].replace('F{0}'.format(i+1),'F[{0}]'.format(i))
         
     @property
     def distance(self):
@@ -46,7 +46,7 @@ class Worley(BaseFilter):
     def distance(self,value):
         if not value in DISTANCES and value not in DISTANCES.values(): raise ValueError("Invalid distance. Valid options are: {0}".format(DISTANCES.keys()))
         self.__distance = value
-        self.__defines['WORLEY_DISTANCE'] = DISTANCES[value]
+        self.__defines['DISTANCE'] = DISTANCES[value]
     
     @filter_argument(ArgumentTypes.INT, 0)
     def seed():
