@@ -28,10 +28,13 @@ parser.add_option("-d", "--device", # Which device to use?
     help="which compute device to use (starts at 0)")
 parser.add_option("-W", "--width",
     default=800, type=int, dest="width",
-    help="width of image (default: %default)")
+    help="width of output file (default: %default)")
 parser.add_option("-H", "--height",
     default=800, type=int, dest="height",
-    help="height of image (default: %default)")
+    help="height of output file (default: %default)")
+parser.add_option("-D", "--depth",
+    default=1, type=int, dest="depth",
+    help="depth of output file (default: %default)")
 parser.add_option("-c", "--code",
     action="store", dest="savecode",
     help="save the generated kernel to this file")
@@ -64,6 +67,7 @@ else:
 # Define input parameters
 width = options.width
 height = options.height
+depth = options.depth
 scale = options.scale
 
 # build filter stack
@@ -77,7 +81,7 @@ else:
     #from scaletrans import ScaleTrans
     #rom perlin import Perlin
     clear = Clear()
-    scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
+    scale = ScaleTrans(scale=(scale*width/height,scale,scale,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
     fs.push(clear)
     fs.push(scale)
 
@@ -107,14 +111,14 @@ if options.savecode:
 # Run!
 if options.filename:
     if options.raw_mode: # Raw mode
-        print "Saving output to %dx%d raw file '%s'" % (width,height,options.filename)
-        fs.run_to_file(options.filename,width,height,1)
+        print "Saving output to %dx%dx%d raw file '%s'" % (width,height,depth,options.filename)
+        fs.run_to_file(options.filename,width,height,depth)
     else: # Image mode
         print "Saving output to %dx%d image '%s'" % (width,height,options.filename)
         fs.save_image(options.filename,width,height)
 else:
-    print "Running and discarding output of %dx%d data" % (width,height)
-    fs.run_to_discard(width,height,1)
+    print "Running and discarding output of %dx%dx%d data" % (width,height,depth)
+    fs.run_to_discard(width,height,depth)
 
 # Time
 print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)
