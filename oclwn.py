@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from filterstack import *
+from openclnoise import *
 import optparse
 import sys
 import os
@@ -67,17 +67,17 @@ if options.load_path:
     fs.load(options.load_path)
 else:
     # Push clear and scale-trans filters
-    from clear import Clear
-    from scaletrans import ScaleTrans
-    from perlin import Perlin
+    #from clear import Clear
+    #from scaletrans import ScaleTrans
+    #rom perlin import Perlin
     clear = Clear()
     scale = ScaleTrans(scale=(scale*width/height,scale,1,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
     fs.push(clear)
     fs.push(scale)
 
     # TESTING FILTERS HERE
-    from checkerboard import CheckerBoard
-    from perlin import Perlin
+    #from checkerboard import CheckerBoard
+    #from perlin import Perlin
     #from blend import Blend, BlendMode
     #fs.push(CheckerBoard())
     fs.push(Perlin())

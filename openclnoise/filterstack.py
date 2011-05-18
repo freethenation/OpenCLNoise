@@ -3,6 +3,8 @@ import time
 import logging as log
 import pyopencl as cl
 import warnings
+import os
+import inspect
 try:
     from pyopencl.array import vec
 except ImportError:
@@ -339,7 +341,8 @@ class FilterStack(object):
         if not self._cached_sourcecode:
             self._cached_sourcecode = '#pragma OPENCL EXTENSION cl_amd_printf : enable\n'
             self._cached_sourcecode += '// Start utility.cl\n'
-            with open('utility.cl') as inp: self._cached_sourcecode += inp.read().strip() + '\n'
+            with open(os.path.join(os.path.dirname(inspect.getfile(self.__class__)), 'utility.cl')) as inp: 
+                self._cached_sourcecode += inp.read().strip() + '\n'
             self._cached_sourcecode += '// End utility.cl\n'
             
             kernel_main = []
