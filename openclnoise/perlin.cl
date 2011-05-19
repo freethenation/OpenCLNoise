@@ -1,5 +1,7 @@
 //#pragma OPENCL EXTENSION cl_amd_printf : enable
 
+#ifndef PERLIN_HELPERS
+#define PERLIN_HELPERS
 float InterpolatedNoise(float4 finput, uint seed) {
     float4 frac,junk;
     int4 iinput;
@@ -40,6 +42,7 @@ float InterpolatedNoise(float4 finput, uint seed) {
     
     return INTERPOLATOR(j1,j2,frac.z);
 }
+#endif
 
 PointColor /*id*/perlin(PointColor input, float persistence, int maxdepth, int seed) {   
     FLOAT_T total = 0;

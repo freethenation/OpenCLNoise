@@ -82,27 +82,26 @@ else:
     #rom perlin import Perlin
     clear = Clear()
     scale = ScaleTrans(scale=(scale*width/height,scale,scale,1), translate=(500+-scale/2.0*width/height,500+-scale/2.0,0,0))
-    fs.push(clear)
-    fs.push(scale)
+    cs = [clear,scale]
 
     # TESTING FILTERS HERE
-    #from checkerboard import CheckerBoard
-    #from perlin import Perlin
-    #from blend import Blend, BlendMode
-    #fs.push(CheckerBoard())
+    fs.push(cs)
+    fs.push(Worley(distance='manhattan', seed=809))
+    fs.push(cs)
+    fs.push(Worley(distance='manhattan', seed=908))
+    fs.push(cs)
     fs.push(Worley(distance='manhattan'))
-    fs.push(clear)
-    fs.push(scale)
+    fs.push(cs)
     fs.push(Perlin())
-    fs.push(clear)
-    fs.push(scale)
-    fs.push(Worley())
+    fs.push(cs)
+    fs.push(Worley(seed=666))
     fs.push(Select())
-    #~ fs.push(clear)
-    #~ fs.push(scale)
-    #~ fs.push(ScaleTrans(translate=(.5,.5,0,0)))
-    #~ fs.push(CheckerBoard(black_color=(1.0,0.0,0.0,1.0), white_color=(1.0,0.0,0.0,0.5)))
-    #~ fs.push(Blend(mode=BlendMode.ADD))
+    fs.push(cs)
+    fs.push(Perlin(seed=897))
+    fs.push(Select())
+    fs.push(cs)
+    fs.push(Worley(seed=234))
+    fs.push(Select())
     # END TESTING FILTERS
 
 print "Filters:"
