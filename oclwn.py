@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from openclnoise import *
+from openclnoise.filterstack import ByteKernel
 import optparse
 import sys
 import os
@@ -47,6 +48,9 @@ parser.add_option("-l", "--load",
 parser.add_option("-f","--file",
     default=None, type=str, dest="filename",
     help="write image to this filename")
+parser.add_option("-b","--byte",
+    default=False, action="store_true", dest="byte_mode",
+    help="use byte kernel (default: float for raw, byte for images)")
 parser.add_option("-r","--raw",
     default=False, action="store_true", dest="raw_mode",
     help="write raw data (see README for format)")
@@ -72,6 +76,10 @@ scale = options.scale
 
 # build filter stack
 fs = FilterStack(filter_runtime=filter_runtime)
+
+# choose correct kernel
+if options.byte_mode:
+    fs.kernel = ByteKernel()
 
 if options.load_path:
     fs.load(options.load_path)

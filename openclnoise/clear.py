@@ -1,7 +1,6 @@
 from basefilter import *
 
 class Clear(BaseFilter):
-    _filename = "clear.cl"
     def __init__(self):
         BaseFilter.__init__(self)
     
@@ -10,6 +9,9 @@ class Clear(BaseFilter):
     
     def get_number_of_inputs(self):
         return 0
+
+    def generate_code(self):
+        raise Exception("Code for Clear() found in kernel.")
 
     def __repr__(self):
         return 'Clear()'

@@ -5,6 +5,7 @@ import pyopencl as cl
 import warnings
 import os
 import inspect
+from clear import Clear # For matching
 try:
     from pyopencl.array import vec
 except ImportError:
@@ -34,11 +35,15 @@ class JobChunk(object):
         return "chunk starting at {0} (idx {1}) of length {2}".format(self.position3D,self.start_index,len(self))
 
 class FilterRuntime(object):
-    def __init__(self,device=None):
+    def __init__(self,device=None,kernel=None):
         self.on_code_dirty = Event()
 
         self.__context = None
         self.__queue = None
+
+        self.__kernel = kernel
+        if self.__kernel is None:
+            self.__kernel = FloatKernel()
 
         self._device = None
         if isinstance(device,int):
@@ -49,6 +54,16 @@ class FilterRuntime(object):
         else:
             self.device = device
     
+    @property
+    def kernel(self):
+        return self.__kernel
+    
+    @kernel.setter
+    def kernel(self,kernel):
+        if self.__kernel != kernel: 
+            self.__kernel = kernel
+            self.on_code_dirty(self)
+
     def get_devices(self):
         platforms = cl.get_platforms()
         if len(platforms) < 1: 
@@ -65,7 +80,7 @@ class FilterRuntime(object):
             return cl.Program(self.context, code).build()    
 
     def run_to_memory(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
-        final_array = numpy.empty(shape=(output_width*output_height*output_depth),dtype=vec.float4)
+        final_array = numpy.empty(shape=(output_width*output_height*output_depth),dtype=self.__kernel.dtype())
         for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
             final_array[chunk.start_index:chunk.start_index+len(chunk)] = chunk.data
             del chunk.data
@@ -79,10 +94,10 @@ class FilterRuntime(object):
         file.write(numpy.uint64(output_height).data)
         file.write(numpy.uint64(output_depth).data)
         for x in xrange(output_width * output_height * output_depth / 8192):
-            file.write('\0'*16*8192)
+            file.write('\0'*(numpy.dtype(self.__kernel.dtype()).itemsize)*8192)
         file.seek(0)
         for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
-            file.seek(chunk.start_index*16+24) # Space for header # FIXME
+            file.seek(chunk.start_index*(numpy.dtype(self.__kernel.dtype()).itemsize)+24) # Space for header # FIXME
             file.write(chunk.data)
             del chunk.data
         file.close()
@@ -123,11 +138,11 @@ class FilterRuntime(object):
             
         # Calculate job length and chunk size
         job_length = output_width * output_height * output_depth
-        chunk_size = 2048 # fixme
+        chunk_size = 1024*1024  # fixme
         num_chunks = int(math.ceil(job_length*1.0 / chunk_size))
         
         # Allocate per-chunk array, and output buffer
-        chunk_output = numpy.empty(chunk_size,vec.float4)
+        chunk_output = numpy.empty(chunk_size,self.__kernel.dtype())
         output_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.USE_HOST_PTR, hostbuf=chunk_output)
 
         # Get kernel and run
@@ -135,14 +150,19 @@ class FilterRuntime(object):
         for chunk_num in xrange(num_chunks):
             chunk_index = chunk_num*chunk_size
             my_chunk_size = min(chunk_size, job_length-chunk_index)
-            chunk_output = numpy.empty(my_chunk_size,vec.float4) # Redefine array
+            chunk_output = numpy.empty(my_chunk_size,self.__kernel.dtype()) # Redefine array
 
             # Run and read from GPU
+#            t = time.time()
             kernel(self.queue, (my_chunk_size,), None, 
                    numpy.uint64(chunk_index), vec.make_int4(output_width,output_height,output_depth),
                    output_buf,
-                   nargs_float, nargs_int, nargs_float4, nargs_int4)
+                   nargs_float, nargs_int, nargs_float4, nargs_int4)#.wait()
+#            print 'kernel', (time.time() -t) * 1000
+            
+#            t = time.time()
             cl.enqueue_read_buffer(self.queue, output_buf, chunk_output).wait()
+#            print 'copy  ', (time.time() - t) * 1000
             
             yield JobChunk(chunk_output,chunk_index,(output_width,output_height,output_depth))
         
@@ -167,8 +187,73 @@ class FilterRuntime(object):
     @property
     def queue(self): return self.__queue
     
+class Kernel(object):
+    def __eq__(me,other):
+        return type(other) is type(me)
+    
+    def generate_header(self):
+        ''' Generate the header of this kernel. '''
+        raise NotYetImplemented()
+
+    def generate_footer(self):
+        ''' Generate the footer of the kernel. '''
+        raise NotYetImplemented()
+
+    def dtype(self):
+        ''' Return the proper datatype to use with this kernel. '''
+        raise NotYetImplemented()
+
+class FloatKernel(Kernel):
+    def generate_header(self):
+        return '''PointColor clear(float4 point) {
+    PointColor v;
+    v.point = point;
+    v.color.xyzw = 1;
+    return v;
+}
+
+__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
+    ulong thisPoint = get_global_id(0) + startIndex;
+    float4 point;
+    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x;
+    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y;
+    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z;'''
+    
+    def generate_footer(self):
+        return '    output[get_global_id(0)] = o0.color;\n}'
+
+    def dtype(self): 
+        return vec.float4
+
+class ByteKernel(Kernel):
+    def generate_header(self):
+        return '''PointColor clear(float4 point) {
+    PointColor v;
+    v.point = point;
+    v.color.xyzw = 1;
+    return v;
+}
+
+__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global uchar4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
+    ulong thisPoint = get_global_id(0) + startIndex;
+    float4 point;
+    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x;
+    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y;
+    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z;'''
+    
+    def generate_footer(self):
+        return '''uchar4 ballz;
+ballz.x = (uchar)(o0.color.x * 255);
+ballz.y = (uchar)(o0.color.y * 255);
+ballz.z = (uchar)(o0.color.z * 255);
+ballz.w = (uchar)(o0.color.w * 255);
+output[get_global_id(0)] = ballz;\n}\n'''
+
+    def dtype(self): 
+        return vec.uchar4
+
 class FilterStack(object):
-    def __init__(self, filters=None, filter_runtime=None):
+    def __init__(self, filters=None, kernel=None, filter_runtime=None):
         self._list = []
         self._mark_dirty()
         self.runtime = filter_runtime
@@ -176,13 +261,23 @@ class FilterStack(object):
         self.width = 800
         self.height = 800
         self.depth = 1
-        if not self.runtime: self.runtime = FilterRuntime()
+
+        if not self.runtime: self.runtime = FilterRuntime(kernel=kernel)
+            
         if filters: self.append(filters)
         
     def _mark_dirty(self, *args):
         self._cached_sourcecode = None
         self._cached_bytecode = None
     
+    @property
+    def kernel(self):
+        return self.runtime.kernel
+    
+    @kernel.setter
+    def kernel(self,kernel):
+        self.runtime.kernel = kernel
+
     @property
     def is_dirty(self):
         return self._cached_sourcecode == None
@@ -301,11 +396,14 @@ class FilterStack(object):
         
     def gen_image(self, width=None, height=None):
         from PIL import Image
-        output = self.run(width,height,1)[:,:,0]
-        
-        output = numpy.ndarray(shape=(width,height,4),buffer=output.data,dtype=numpy.float32)
 
-        im = Image.fromarray((output*255).astype(numpy.ubyte))
+        if self.runtime.kernel != ByteKernel():
+            self.runtime.kernel = ByteKernel()
+
+        output = self.run(width,height,1)[:,:,0]
+        output = numpy.ndarray(shape=(width,height,4),buffer=output.data,dtype=numpy.ubyte)
+        
+        im = Image.fromarray(output)
         return im
     
     def save_image(self, path, width=None, height=None):
@@ -372,18 +470,13 @@ class FilterStack(object):
             for filterid,filter in enumerate(self._list):
                 # Find unique ID for namespacing
                 filterid = 'n{0}'.format(filterid)
-                
-                # Build code
-                code = filter.generate_code() # Get the code for this filter
-                code = code.replace('/*id*/',filterid) # Do namespacing
-                self._cached_sourcecode += '\n' + code.strip() + '\n'                
-                
+
                 # Work out number and names of inputs (PointColors)
                 inputs = []
                 numinputs = filter.get_number_of_inputs()
                 for i in xrange(numinputs): 
                     inputs.append(stack.pop())
-                    
+                
                 # Work out name of output PointColor and push to stack
                 ssize = len(stack)
                 if ssize > max_stack_size:
@@ -391,45 +484,28 @@ class FilterStack(object):
                 output = 'o'+str(ssize)
                 stack.append(output)
                 
-                # Pull inputs
-                inputs += self._argsforfilter[filter]
+                if isinstance(filter,Clear):
+                    kernel_main.append('{output} = clear(point);'.format(output=output))
+                else:
+                    # Build code
+                    code = filter.generate_code() # Get the code for this filter
+                    code = code.replace('/*id*/',filterid) # Do namespacing
+                    self._cached_sourcecode += '\n' + code.strip() + '\n'                
+
+                    # Pull inputs
+                    inputs += self._argsforfilter[filter]
                 
-                # Append to kernel main function
-                kernel_main.append('{output} = {id}{name}({inputs});'.format(output=output,id=filterid,name=filter.get_name(),inputs=', '.join(inputs)))    
+                    # Append to kernel main function
+                    kernel_main.append('{output} = {id}{name}({inputs});'.format(output=output,id=filterid,name=filter.get_name(),inputs=', '.join(inputs)))    
                 
             if len(stack) != 1:
                 raise Exception("Some items left on the stack.")
-                
-            #~ x = i / depth / height
-            #~ y = (i / depth) % height
-            #~ z = i % depth
-            #~ return (x,y,z)
-                
-            self._cached_sourcecode += '''            
-__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
-    ulong thisPoint = get_global_id(0) + startIndex;
-    //printf("%d\\n",thisPoint);
-    float4 point;
-    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x;
-    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y;
-    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z;
-    
-    //printf("%f,%f,%f\\n",point.x,point.y,point.z);
-    
-'''
             
+            self._cached_sourcecode += self.runtime.kernel.generate_header()
+
             self._cached_sourcecode += "\n    PointColor "+', '.join(['o{0}'.format(i) for i in xrange(max_stack_size+1)])+';\n'
-            self._cached_sourcecode += ('\n'.join(['    '+str(k) for k in kernel_main]) + '\n\n').replace('clear()','clear(point)');
+            self._cached_sourcecode += ('\n'.join(['    '+str(k) for k in kernel_main]) + '\n\n');
             
-            self._cached_sourcecode += '    output[get_global_id(0)] = o0.color;\n}'
+            self._cached_sourcecode += self.runtime.kernel.generate_footer()
             
         return self._cached_sourcecode
-
-##Sample code to get shit running
-#from filterstack import *
-#stack = FilterStack()
-#stack.runtime.device = stack.runtime.get_devices()[1]
-#from generators.checkerboard import CheckerBoard
-#c = CheckerBoard()
-#stack.push(c)
-#stack.run()
