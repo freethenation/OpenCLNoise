@@ -20,7 +20,7 @@
 #define our_distance(p1,p2) max(max(fabs(p1-p2).x,fabs(p1-p2).y),fabs(p1-p2).z)
 #endif
 
-void insert(FLOAT_T *arr, FLOAT_T value) {
+void /*id*/insert(FLOAT_T *arr, FLOAT_T value) {
   float temp;
   for(int i=/*id*/NUMVALUES-1; i>=0; i--) {
     if(value > arr[i]) break;
@@ -30,6 +30,8 @@ void insert(FLOAT_T *arr, FLOAT_T value) {
   }
 }
 
+#ifndef WORLEY_HELPERS
+#define WORLEY_HELPERS
 // Generated with "AccountingForm[N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]*2^32]" //"N[Table[CDF[PoissonDistribution[4], i], {i, 1, 9}], 20]"
 uint prob_lookup(uint value)
 {
@@ -43,6 +45,7 @@ uint prob_lookup(uint value)
     if(value < 4203212043) return 8;
     return 9;
 }
+#endif
 
 PointColor /*id*/worley(PointColor input, int seed) {
     FLOAT_T F[/*id*/NUMVALUES];
@@ -74,7 +77,7 @@ PointColor /*id*/worley(PointColor input, int seed) {
                     
                     featurePoint = randomDiff + convert_float4(cube);
 
-                    insert(F, our_distance(input.point,featurePoint));
+                    /*id*/insert(F, our_distance(input.point,featurePoint));
                 }
             }
         }

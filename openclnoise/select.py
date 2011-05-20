@@ -10,3 +10,6 @@ class Select(BaseFilter):
     
     def get_number_of_inputs(self):
         return 3
+        
+    def __repr__(self):
+        return "Select()"
