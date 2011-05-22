@@ -19,7 +19,7 @@ for x in xrange(w):
     for y in xrange(h):
         for z in xrange(l):
             point = (data[x,y,z])[0]
-            if point > 0.32:
+            if point < 0.50:
                 narr[x,y,z] = 1
             else:
                 narr[x,y,z] = 0
@@ -34,11 +34,11 @@ s["Materials"] = TAG_String("Alpha")
 
 s["Blocks"] = TAG_Byte_Array()
 s["Blocks"].value = narr
-s["Blocks"].value.shape = (h,l,w)
 
+s["Blocks"].value.shape = (w,h,l)
 s["Data"] = TAG_Byte_Array()
 s["Data"].value = numpy.zeros(l*w*h, dtype=numpy.uint8)
-s["Data"].value.shape = (h,l,w)
+s["Data"].value.shape = (w,h,l)
 s["Entities"] = TAG_List()
 s["TileEntities"] = TAG_List()
 

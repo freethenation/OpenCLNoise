@@ -4,7 +4,7 @@ class ZeroComponent(BaseFilter):
     _filename = "zerocomponent.cl"
     def __init__(self, component='y'):
         BaseFilter.__init__(self)
-        self._component = component
+        self.component = component
     
     def get_name(self):
         return "zerocomponent"
@@ -13,11 +13,12 @@ class ZeroComponent(BaseFilter):
         return 1
     
     @property
-    def component(self): return self._component
+    def component(self): 
+        return self._defines['COMPONENT']
     
     @component.setter
     def component(self,value):
-        self._component = value
+        self._defines['COMPONENT'] = value
         self.on_code_dirty(self)
 
     def __repr__(self):

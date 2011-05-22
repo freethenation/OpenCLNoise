@@ -89,21 +89,28 @@ else:
     #from scaletrans import ScaleTrans
     #rom perlin import Perlin
     clear = Clear()
-#    scale = ScaleTrans(scale=(scale*width/height,scale,scale,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
-    scale = ScaleTrans(scale=(width,height,depth,1), translate=(0,0,0,0))
+    scale = ScaleTrans(scale=(scale*width/height,scale,scale,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
+    #scale = ScaleTrans(scale=(width,height,depth,1), translate=(0,0,0,0))
     cs = [clear,scale]
 
     # TESTING FILTERS HERE
     fs.push(cs)
-    #~ fs.push(CheckerBoard())
-    
+    #fs.push(CheckerBoard(black_color=(1.0,1.0,1.0,1.0),white_color=(0,0,0.0,1.0)))
     fs.push(ZeroComponent())
-    fs.push(Perlin(persistence=0.5, seed=3123))
-    fs.push(cs)
-    fs.push(Constant(constant_color=0.0))
-    fs.push(cs)
-    fs.push(Constant(constant_color=1.0))
-    fs.push(HeightMap(max_height=height))
+    #~ fs.push(CheckerBoard())
+    #~ fs.push(cs)
+    #~ fs.push(Constant(constant_color=(1,0,0,1)))
+    #~ fs.push(cs)
+    #~ fs.push(Constant(constant_color=(0,1,0,1)))
+    #~ fs.push(HeightMap(min_height=-5,max_height=5))
+    #~ 
+    #~ fs.push(ZeroComponent(component='x'))
+    #~ fs.push(Perlin(persistence=0.5, initial_amplitude=0.2, seed=3123))
+    #~ fs.push(cs)
+    #~ fs.push(Constant(constant_color=0.0))
+    #~ fs.push(cs)
+    #~ fs.push(Constant(constant_color=1.0))
+    #~ fs.push(HeightMap(max_height=height,component='x'))
     
     # fs.push(cs)
     # fs.push(Worley(distance='manhattan', seed=809))

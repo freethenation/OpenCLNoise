@@ -138,12 +138,7 @@ class FilterRuntime(object):
             
         # Calculate job length and chunk size
         job_length = output_width * output_height * output_depth
-        mem_size = self.device.get_info(cl.device_info.MAX_MEM_ALLOC_SIZE)
-        if mem_size > 512*1024*1024:
-            log.warn("Detected available greater than 512mb. Capping at 512mb.")
-            mem_size = 512*1024*1024
-        chunk_size = mem_size / self.kernel.dtype().itemsize
-        #chunk_size = 2048  # fixme
+        chunk_size = 1024*1024  # fixme
         num_chunks = int(math.ceil(job_length*1.0 / chunk_size))
         
         # Allocate per-chunk array, and output buffer
@@ -268,6 +263,7 @@ class FilterStack(object):
         self.depth = 1
 
         if not self.runtime: self.runtime = FilterRuntime(kernel=kernel)
+        self.runtime.on_code_dirty += self._mark_dirty
             
         if filters: self.append(filters)
         
@@ -506,11 +502,11 @@ class FilterStack(object):
             if len(stack) != 1:
                 raise Exception("Some items left on the stack.")
             
-            self._cached_sourcecode += self.runtime.kernel.generate_header()
+            self._cached_sourcecode += self.runtime.kernel.generate_header() + '\n'
 
             self._cached_sourcecode += "\n    PointColor "+', '.join(['o{0}'.format(i) for i in xrange(max_stack_size+1)])+';\n'
             self._cached_sourcecode += ('\n'.join(['    '+str(k) for k in kernel_main]) + '\n\n');
             
-            self._cached_sourcecode += self.runtime.kernel.generate_footer()
+            self._cached_sourcecode += self.runtime.kernel.generate_footer() + '\n'
             
         return self._cached_sourcecode

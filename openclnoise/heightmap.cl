@@ -1,5 +1,5 @@
 PointColor /*id*/heightmap(PointColor air, PointColor ground, PointColor selector, float min_height, float max_height) {
-	float y = air.point.y;
+	float y = air.point./*id*/COMPONENT;
 	if(y < min_height) {
 	  ground.color.w = 0;
 	  return ground;
