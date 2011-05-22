@@ -37,6 +37,7 @@ class Worley(BaseFilter):
         self.__defines['FUNCTION'] = self.__function 
         for i in xrange(self.__defines['NUMVALUES']):
             self.__defines['FUNCTION'] = self.__defines['FUNCTION'].replace('F{0}'.format(i+1),'F[{0}]'.format(i))
+        self.on_code_dirty(self)
         
     @property
     def distance(self):
@@ -47,6 +48,7 @@ class Worley(BaseFilter):
         if not value in DISTANCES and value not in DISTANCES.values(): raise ValueError("Invalid distance. Valid options are: {0}".format(DISTANCES.keys()))
         self.__distance = value
         self.__defines['DISTANCE'] = DISTANCES[value]
+        self.on_code_dirty(self)
     
     @filter_argument(ArgumentTypes.INT, 0)
     def seed():
