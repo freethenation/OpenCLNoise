@@ -44,14 +44,15 @@ float InterpolatedNoise(float4 finput, uint seed) {
 }
 #endif
 
-PointColor /*id*/perlin(PointColor input, float persistence, int maxdepth, int seed) {   
-    FLOAT_T total = 0;
+PointColor /*id*/perlin(PointColor input, float persistence, float initial_amplitude, int maxdepth, int seed) {   
+    FLOAT_T total = .5;
     float frequency = 1;
-	float amplitude = 1 - persistence;
+	//float amplitude = 0.5*(persistence-1)/(pow(persistence,1.0+maxdepth+0.5)-1);
+	float amplitude = initial_amplitude;
 	uint uSeed = (uint)seed;
       
     for(int i=0; i < maxdepth; ++i) {
-        total += InterpolatedNoise(input.point*frequency, uSeed) * amplitude;
+        total += (InterpolatedNoise(input.point*frequency, uSeed + i) - 0.5) * amplitude;
         frequency *= 2;
         amplitude *= persistence;
     }
