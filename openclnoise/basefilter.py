@@ -58,6 +58,7 @@ def SimpleFilterFactory(filter_name, file_name, num_inputs):
 class BaseFilter(object):
     _filename = None
     def __init__(self):
+        self._defines = {}
         self.on_code_dirty = Event()      
     
     def get_name(self):
@@ -67,10 +68,15 @@ class BaseFilter(object):
         raise NotYetImplemented()
         
     def generate_code(self):
+        code = ''
+        for k,v in self._defines.iteritems():
+            code += '#define /*id*/{0} {1}\n'.format(k,v)
+        
         if self._filename:
             path = os.path.join(os.path.dirname(inspect.getfile(self.__class__)), self._filename)
             with open(path) as file:
-                return file.read()
+                code += file.read()
+            return code
         else: raise NotYetImplemented()
         
     def __repr__(self):
