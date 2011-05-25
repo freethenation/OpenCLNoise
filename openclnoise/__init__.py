@@ -9,3 +9,4 @@ from worley import Worley
 from select import Select
 from heightmap import HeightMap
 from zerocomponent import ZeroComponent
+from blend import Blend
