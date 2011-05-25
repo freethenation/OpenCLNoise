@@ -32,14 +32,29 @@ def filter_argument(argument_type, argument_index):
     return _filter_argument
     
 def float4(value):
+    for t in (float,int,long):
+        if isinstance(value,t):
+            value = (t,t,t,1.0)
+
     ret = tuple(value)
-    if len(value) != 4: raise ValueError()
+    if len(ret) == 3: ret = (ret[0],ret[1],ret[2],1.0)
+    if len(ret) != 4: raise ValueError()
+
+    print ret
+
     return ret
+
+int4 = float4
     
-def int4(value):
-    ret = tuple(value)
-    if len(value) != 4: raise ValueError()
-    return ret
+# def int4(value):
+#     for t in (float,int,long):
+#         if isinstance(value,t):
+#             value = (t,t,t,1)
+
+#     ret = tuple(value)
+#     if len(ret) == 3: ret = tuple(list(ret) + [0.0])
+#     if len(ret) != 4: raise ValueError()
+#     return ret
 
 def SimpleFilterFactory(filter_name, file_name, num_inputs):
     class SimpleFilter(BaseFilter):

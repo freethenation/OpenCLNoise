@@ -30,12 +30,14 @@ with open(inf) as inp:
 
 #arr = []
 
+comp = 0.50
 if datatype == vec.float4:
-    print "Data is in float4s, comparing to 0.5"
-    comp = 0.5
+    print "Data is in float4s, comparing to {0}".format(comp)
 else:
-    print "Data is in byte4s, comparing to 128"
-    comp = 128
+    comp = 255 * comp
+    print "Data is in byte4s, comparing to {0}".format(comp)
+
+print data
 
 w,h,d = dims
 narr = numpy.empty(w*h*d,dtype=numpy.uint8)
@@ -44,8 +46,6 @@ for x in xrange(w):
         for z in xrange(d):
             point = (data[x,y,z])[0]
             mcd = y + z * h + x * d * h
-#            arr.append(mcd)
-            print point
             if point > comp:
                 narr[mcd] = 1
             else:

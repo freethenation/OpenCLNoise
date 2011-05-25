@@ -1,24 +1,25 @@
-class FilterAddColor(object):
-	__FILENAME = 'addcolor.cl'
-	
-	def __init__(self,color=(0,0,0,0)):
-		self.__defines = {}
-		self.color = color
-				
-	def __loadCode(self):
-		code = ''
-		for k,v in self.__defines.iteritems():
-			code += '#define {0} {1}\n'.format(k,v)
-		with open(self.__FILENAME,'r') as inp: code += inp.read()
-		code += '\n'
-		return code
-		
-	def __repr__(self):
-		return "Add Colo filter: color: {0}".format(self.color)
-		
-	def build_source(self):
-		self.__defines['ADDCOLOR_COLOR'] = '({0:d},{1:d},{2:d},{3:d})'.format(*self.color)
-		return self.__loadCode()
-	
-	def build_invocation_string(self):
-		return 'v = filter_addcolor(v);'
+from basefilter import *
+
+class AddColor(BaseFilter):
+    _filename = "addcolor.cl"
+    def __init__(self, color=(0.25,0.25,0.25,0)):
+        BaseFilter.__init__(self)
+        self.color = color
+    
+    def get_name(self):
+        return "AddColor"
+    
+    def get_number_of_inputs(self):
+        return 1
+    
+    @property
+    def color(self): 
+        return self._defines['COLOR']
+    
+    @color.setter
+    def color(self,value):
+        self._defines['COLOR'] = value
+        self.on_code_dirty(self)
+
+    def __repr__(self):
+        return "AddColor(color={0})".format(self.color)

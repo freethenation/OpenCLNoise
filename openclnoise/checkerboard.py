@@ -8,8 +8,7 @@ class CheckerBoard(BaseFilter):
         self._white_color = white_color
         if constant_color is not None: 
             self.constant_color = constant_color
-        
-    
+            
     def get_name(self):
         return "checkerboard"
     
@@ -32,6 +31,8 @@ class CheckerBoard(BaseFilter):
         def fget(self):
             return self._black_color
         def fset(self, value):
+            if isinstance(value,float) or isinstance(value,int) or isinstance(value,long): 
+                value = (value,value,value,1.0)
             self._black_color = float4(value)
         return fget, fset, None
         
@@ -39,7 +40,9 @@ class CheckerBoard(BaseFilter):
     def white_color():
         def fget(self):
             return self._white_color
-        def fset(self, value):
+        def fset(self, value):            
+            if isinstance(value,float) or isinstance(value,int) or isinstance(value,long): 
+                value = (value,value,value,1.0)
             self._white_color = float4(value)
         return fget, fset, None
 

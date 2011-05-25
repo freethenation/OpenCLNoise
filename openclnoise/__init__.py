@@ -10,3 +10,4 @@ from select import Select
 from heightmap import HeightMap
 from zerocomponent import ZeroComponent
 from blend import Blend
+from addcolor import AddColor
