@@ -57,4 +57,4 @@ class Blend(BaseFilter):
         return 'blend'
         
     def __repr__(self):
-        return "Blend: mode = {0};".format(self.__mode)
+        return 'Blend(mode = "{0}")'.format(self.__mode)
