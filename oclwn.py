@@ -113,6 +113,8 @@ else:
     fs.push(Constant(constant_color=0.0))
 
     fs.push(HeightMap(max_height=width/64,component='x'))
+    fs.push(Worley(seed=666))
+    fs.push(Blend(mode="Darken"))
     
     # fs.push(cs)
     # fs.push(Worley(distance='manhattan', seed=809))
