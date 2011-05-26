@@ -13,6 +13,14 @@ class ScaleTrans(BaseFilter):
     def get_number_of_inputs(self):
         return 1
     
+    def __mul__(self,other):
+        if type(other) in (int,float,long):
+            return ScaleTrans(scale=map(lambda x: other*x,self.scale),translate=self.translate)
+        return NotImplemented
+
+    def __div__(self,other):
+        return self * (1.0/other)
+
     @filter_argument(ArgumentTypes.FLOAT4, 0)
     def scale():
         def fget(self):

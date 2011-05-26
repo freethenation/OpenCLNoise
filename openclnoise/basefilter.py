@@ -40,8 +40,6 @@ def float4(value):
     if len(ret) == 3: ret = (ret[0],ret[1],ret[2],1.0)
     if len(ret) != 4: raise ValueError()
 
-    print ret
-
     return ret
 
 int4 = float4

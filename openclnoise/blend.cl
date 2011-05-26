@@ -43,7 +43,7 @@ PointColor /*id*/blend(PointColor input1, PointColor input2) {
 	input2.color *= alpha2;
 	//Apply blend
 	input1.color = clamp(ChannelBlend_AlphaF(input1.color, input2.color, /*id*/CHANNEL_BLEND_FUNC, alpha1),0.0,1.0);
-	input1.color.w = alpha1 + (1-alpha1)*alpha2;
+	input1.color.w = alpha2; // + (1-alpha1)*alpha2;
 	return input1;
 }
 

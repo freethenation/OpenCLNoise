@@ -28,32 +28,33 @@ with open(inf) as inp:
     data = numpy.empty((dims[0],dims[1],dims[2]),dtype=datatype)
     data.data = inp.read()
 
-#arr = []
+print data
 
 comp = 0.50
 if datatype == vec.float4:
     print "Data is in float4s, comparing to {0}".format(comp)
 else:
     comp = 255 * comp
+#    dirtlower = 0.47
+#    dirtupper = 0.50
     print "Data is in byte4s, comparing to {0}".format(comp)
 
-print data
+#print data
 
 w,h,d = dims
 narr = numpy.empty(w*h*d,dtype=numpy.uint8)
 for x in xrange(w):
     for y in xrange(h):
         for z in xrange(d):
-            point = (data[x,y,z])[0]
             mcd = y + z * h + x * d * h
+            point = (data[x,y,z])[0]
             if point > comp:
                 narr[mcd] = 1
+                alpha = (data[x,y,z])[3]
+                if abs(alpha - 128) <= 8:
+                    narr[mcd] = 3
             else:
-                narr[mcd] = 0
-                
-# arr.sort()
-# print arr
-# print len(arr), len(set(arr))
+                narr[mcd] = 0 # Insert air
         
 s = TAG_Compound(name="Schematic")
 
