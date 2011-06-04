@@ -138,7 +138,12 @@ class FilterRuntime(object):
             
         # Calculate job length and chunk size
         job_length = output_width * output_height * output_depth
-        chunk_size = 1024*1024  # fixme
+        mem_size = self.device.get_info(cl.device_info.MAX_MEM_ALLOC_SIZE)
+        if mem_size > 512*1024*1024:
+            log.warn("Detected available greater than 512mb. Capping at 512mb.")
+            mem_size = 512*1024*1024
+        chunk_size = mem_size / self.kernel.dtype().itemsize
+        #chunk_size = 2048  # fixme
         num_chunks = int(math.ceil(job_length*1.0 / chunk_size))
         
         # Allocate per-chunk array, and output buffer
