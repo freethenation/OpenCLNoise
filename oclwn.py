@@ -39,9 +39,9 @@ parser.add_option("-D", "--depth",
 parser.add_option("-c", "--code",
     action="store", dest="savecode",
     help="save the generated kernel to this file")
-parser.add_option("-s", "--scale",
-    default=10, type=float, dest="scale",
-    help="range from -scale/2 to scale/2 (default: %default)")
+parser.add_option("-z", "--zoom",
+    default=1, type=float, dest="zoom",
+    help="zoom factor")
 parser.add_option("-l", "--load",
     default=None, type=str, dest="load_path",
     help="the path specifying location of saved filter stack file")
@@ -72,7 +72,6 @@ else:
 width = options.width
 height = options.height
 depth = options.depth
-scale = options.scale
 
 # build filter stack
 fs = FilterStack(filter_runtime=filter_runtime)
@@ -91,13 +90,13 @@ else:
     clear = Clear()
     #scale = ScaleTrans(scale=(scale*width/height,scale,scale,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
     #scale = ScaleTrans(scale=(width/16,height/16,depth/16,1), translate=(0.5,0.5,0.5,0))
-    scaletrans = ScaleTrans(scale=(width/scale,height/scale,depth/scale), translate=(1.0/scale/2,1.0/scale/2,1.0/scale/2))
+    #scaletrans = ScaleTrans(scale=(width/scale,height/scale,depth/scale), translate=(1.0/scale/2,1.0/scale/2,1.0/scale/2))
+    scaletrans = ScaleTrans(scale=(1,1,1),translate=(0.5,0.5,0.5))
     cs = [clear,scaletrans]
 
     # TESTING FILTERS HERE
     fs.push(cs)
-
-    fs.push(Perlin())
+    fs.push(CheckerBoard())
     
     # fs.push(ZeroComponent(component='x'))
     # fs.push(Worley(seed=321))
@@ -132,13 +131,13 @@ if options.savecode:
 if options.filename:
     if options.raw_mode: # Raw mode
         print "Saving output to %dx%dx%d raw file '%s'" % (width,height,depth,options.filename)
-        fs.run_to_file(options.filename,width,height,depth)
+        fs.run_to_file(options.filename,width,height,depth,zoom=options.zoom)
     else: # Image mode
         print "Saving output to %dx%d image '%s'" % (width,height,options.filename)
-        fs.save_image(options.filename,width,height)
+        fs.save_image(options.filename,width,height,zoom=options.zoom)
 else:
     print "Running and discarding output of %dx%dx%d data" % (width,height,depth)
-    fs.run_to_discard(width,height,depth)
+    fs.run_to_discard(width,height,depth,zoom=options.zoom)
 
 # Time
 print "Last run took: %.2fms" % (fs.last_run_time*1000.0,)

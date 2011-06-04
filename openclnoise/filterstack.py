@@ -79,16 +79,16 @@ class FilterRuntime(object):
             warnings.simplefilter("ignore")
             return cl.Program(self.context, code).build()    
 
-    def run_to_memory(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+    def run_to_memory(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4, zoom=1.0):
         final_array = numpy.empty(shape=(output_width*output_height*output_depth),dtype=self.__kernel.dtype())
-        for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+        for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4, zoom=zoom):
             final_array[chunk.start_index:chunk.start_index+len(chunk)] = chunk.data
             del chunk.data
         
         final_array.shape = (output_width, output_height, output_depth)
         return final_array
     
-    def run_to_file(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4, file_name):
+    def run_to_file(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4, file_name, zoom=1.0):
         file = open(file_name, "wb")
         file.write(numpy.uint64(output_width).data)
         file.write(numpy.uint64(output_height).data)
@@ -96,14 +96,14 @@ class FilterRuntime(object):
         for x in xrange(output_width * output_height * output_depth / 8192):
             file.write('\0'*(numpy.dtype(self.__kernel.dtype()).itemsize)*8192)
         file.seek(0)
-        for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+        for chunk in self.run_generator(compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4, zoom=zoom):
             file.seek(chunk.start_index*(numpy.dtype(self.__kernel.dtype()).itemsize)+24) # Space for header # FIXME
             file.write(chunk.data)
             del chunk.data
         file.close()
         
     # Run a "job" consisting of one or more "chunks" - generator
-    def run_generator(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4):
+    def run_generator(self, compiled_program, kernel_name, output_width, output_height, output_depth, args_float, args_int, args_float4, args_int4, zoom=1.0):
         # Make a buffer out of x. y is type of buffer: 0 - float, 1 - int, 2 - float4, 3 - walrus; returns buffer of 1 element if array is empty
         def m(x,y):
             if not x:
@@ -157,6 +157,7 @@ class FilterRuntime(object):
             kernel(self.queue, (my_chunk_size,), None, 
                    numpy.uint64(chunk_index), vec.make_int4(output_width,output_height,output_depth),
                    output_buf,
+                   numpy.float32(1/zoom*20),
                    nargs_float, nargs_int, nargs_float4, nargs_int4)#.wait()
 #            print 'kernel', (time.time() -t) * 1000
             
@@ -212,12 +213,12 @@ class FloatKernel(Kernel):
     return v;
 }
 
-__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global float4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
+__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global float4 *output, const float zoom, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
     ulong thisPoint = get_global_id(0) + startIndex;
     float4 point;
-    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x;
-    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y;
-    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z;'''
+    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x * zoom;
+    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y * zoom;
+    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z * zoom;'''
     
     def generate_footer(self):
         return '    output[get_global_id(0)] = o0.color;\n}'
@@ -234,12 +235,12 @@ class ByteKernel(Kernel):
     return v;
 }
 
-__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global uchar4 *output, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
+__kernel void FilterStackKernel(ulong startIndex, int4 chunkDimensions, __global uchar4 *output, const float zoom, __global float *args_float, __global int *args_int, __global float4 *args_float4, __global int4 *args_int4) {
     ulong thisPoint = get_global_id(0) + startIndex;
     float4 point;
-    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x;
-    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y;
-    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z;'''
+    point.x = thisPoint / chunkDimensions.z / chunkDimensions.y / (float)chunkDimensions.x * zoom;
+    point.y = (thisPoint / chunkDimensions.z) % chunkDimensions.y / (float)chunkDimensions.y * zoom;
+    point.z = thisPoint % chunkDimensions.z / (float)chunkDimensions.z * zoom;'''
     
     def generate_footer(self):
         return '''uchar4 ballz;
@@ -357,7 +358,7 @@ class FilterStack(object):
         self.clear()
         self.append(eval(code, __import__("openclnoise").__dict__))
     
-    def run(self, width=None, height=None, depth=None):
+    def run(self, width=None, height=None, depth=None, zoom=1.0):
         if not width: width = self.width
         if not height: height = self.height
         if not depth: depth = self.depth
@@ -365,11 +366,11 @@ class FilterStack(object):
             self.__program = self.runtime.compile(self.generate_code())
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
         stime = time.time()
-        ret = self.runtime.run_to_memory(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4)
+        ret = self.runtime.run_to_memory(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4, zoom=zoom)
         self.__last_run_time = time.time() - stime
         return ret
         
-    def run_to_file(self, file_name, width=None, height=None, depth=None):
+    def run_to_file(self, file_name, width=None, height=None, depth=None, zoom=1.0):
         if not width: width = self.width
         if not height: height = self.height
         if not depth: depth = self.depth
@@ -377,10 +378,10 @@ class FilterStack(object):
             self.__program = self.runtime.compile(self.generate_code())
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
         stime = time.time()
-        self.runtime.run_to_file(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4, file_name)
+        self.runtime.run_to_file(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4, file_name, zoom=zoom)
         self.__last_run_time = time.time() - stime
         
-    def run_to_discard(self, width=None, height=None, depth=None):
+    def run_to_discard(self, width=None, height=None, depth=None, zoom=1.0):
         if not width: width = self.width
         if not height: height = self.height
         if not depth: depth = self.depth
@@ -388,27 +389,27 @@ class FilterStack(object):
             self.__program = self.runtime.compile(self.generate_code())
         args_float,args_int,args_float4,args_int4 = self.get_args_arrays()
         stime = time.time()
-        for x in self.runtime.run_generator(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4): del x.data
+        for x in self.runtime.run_generator(self.__program, "FilterStackKernel", width, height, depth, args_float, args_int, args_float4, args_int4, zoom=zoom): del x.data
         self.__last_run_time = time.time() - stime
 
     @property
     def last_run_time(self):
         return self.__last_run_time
         
-    def gen_image(self, width=None, height=None):
+    def gen_image(self, width=None, height=None, zoom=1.0):
         from PIL import Image
 
         if self.runtime.kernel != ByteKernel():
             self.runtime.kernel = ByteKernel()
 
-        output = self.run(width,height,1)[:,:,0]
+        output = self.run(width,height,1,zoom=zoom)[:,:,0]
         output = numpy.ndarray(shape=(width,height,4),buffer=output.data,dtype=numpy.ubyte)
         
         im = Image.fromarray(output)
         return im
     
-    def save_image(self, path, width=None, height=None):
-        im = self.gen_image(width,height)
+    def save_image(self, path, width=None, height=None, zoom=1.0):
+        im = self.gen_image(width,height,zoom=zoom)
         im.save(path)
         del im
     
