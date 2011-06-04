@@ -96,23 +96,25 @@ else:
 
     # TESTING FILTERS HERE
     fs.push(cs)
+
+    fs.push(Perlin())
     
-    fs.push(ZeroComponent(component='x'))
-    fs.push(Worley(seed=321))
-    fs.push(AddColor(color=(0.5,0.5,0.5,0.0)))
-    fs.push(cs)
-    fs.push(Constant(constant_color=1.0))
-    fs.push(cs)
-    fs.push(Constant(constant_color=0.0))
+    # fs.push(ZeroComponent(component='x'))
+    # fs.push(Worley(seed=321))
+    # fs.push(AddColor(color=(0.5,0.5,0.5,0.0)))
+    # fs.push(cs)
+    # fs.push(Constant(constant_color=1.0))
+    # fs.push(cs)
+    # fs.push(Constant(constant_color=0.0))
 
-    fs.push(HeightMap(max_height=width/scale,component='x'))
+    # fs.push(HeightMap(max_height=width/scale,component='x'))
 
-    fs.push(clear)
-    fs.push(scaletrans/2)
-    fs.push(Worley(seed=667,function="F2-F1"))
-    fs.push(AddColor(color=(0.47,0.47,0.47,0.0)))
+    # fs.push(clear)
+    # fs.push(scaletrans/2)
+    # fs.push(Worley(seed=667,function="F2-F1"))
+    # fs.push(AddColor(color=(0.47,0.47,0.47,0.0)))
 
-    fs.push(Blend(mode="Darken"))
+    # fs.push(Blend(mode="Darken"))
     
     # END TESTING FILTERS
 
