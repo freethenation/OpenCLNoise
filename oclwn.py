@@ -84,36 +84,16 @@ if options.load_path:
     fs.load(options.load_path)
 else:
     # Push clear and scale-trans filters
-    #from clear import Clear
-    #from scaletrans import ScaleTrans
-    #rom perlin import Perlin
     clear = Clear()
-    #scale = ScaleTrans(scale=(scale*width/height,scale,scale,1), translate=(-scale/2.0*width/height,-scale/2.0,0,0))
-    #scale = ScaleTrans(scale=(width/16,height/16,depth/16,1), translate=(0.5,0.5,0.5,0))
-    #scaletrans = ScaleTrans(scale=(width/scale,height/scale,depth/scale), translate=(1.0/scale/2,1.0/scale/2,1.0/scale/2))
     scaletrans = ScaleTrans(scale=(1,1,1),translate=(0.5,0.5,0.5))
     cs = [clear,scaletrans]
 
     # TESTING FILTERS HERE
     fs.push(cs)
-    fs.push(CheckerBoard())
-    
-    # fs.push(ZeroComponent(component='x'))
-    # fs.push(Worley(seed=321))
-    # fs.push(AddColor(color=(0.5,0.5,0.5,0.0)))
-    # fs.push(cs)
-    # fs.push(Constant(constant_color=1.0))
-    # fs.push(cs)
-    # fs.push(Constant(constant_color=0.0))
-
-    # fs.push(HeightMap(max_height=width/scale,component='x'))
-
-    # fs.push(clear)
-    # fs.push(scaletrans/2)
-    # fs.push(Worley(seed=667,function="F2-F1"))
-    # fs.push(AddColor(color=(0.47,0.47,0.47,0.0)))
-
-    # fs.push(Blend(mode="Darken"))
+    fs.push(Worley())
+    fs.push(cs)
+    fs.push(CheckerBoard(black_color=(0,0,0,0.10), white_color=(1,1,1,0.10)))
+    fs.push(Blend())    
     
     # END TESTING FILTERS
 
